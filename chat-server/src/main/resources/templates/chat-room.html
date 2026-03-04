@@ -1,0 +1,283 @@
+<!doctype html>
+<html xmlns:th="http://www.thymeleaf.org">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>GRIZZLY - Chat Room</title>
+    <link rel="stylesheet" href="/css/style.css" />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+    />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/sockjs-client/1.6.1/sockjs.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
+  </head>
+  <body>
+    <div class="container">
+      <header class="chat-room-header">
+        <a th:href="@{'/chats?userId=' + ${userId}}" class="back-btn"
+          ><i class="fas fa-chevron-left"></i
+        ></a>
+        <a
+          th:href="@{'http://localhost:8081/users/' + ${targetUserId}}"
+          class="chat-room-header-link"
+        >
+          <div
+            class="avatar header-avatar"
+            th:style="'background-image: url(' + (${targetUserImageUrl != null ? targetUserImageUrl : 'https://randomuser.me/api/portraits/lego/1.jpg'}) + ')'"
+          ></div>
+          <div>
+            <div class="header-nickname" th:text="${targetUserNickname}">
+              닉네임
+            </div>
+            <div
+              id="onlineStatus"
+              class="online-status-small"
+              th:text="${isTargetUserOnline} ? '● Online' : '● Offline'"
+              th:style="${isTargetUserOnline} ? 'color: #4cd137;' : 'color: #888;'"
+            >
+              ● Offline
+            </div>
+          </div>
+        </a>
+        <div class="header-menu-container">
+          <button id="menuBtn" class="menu-btn">
+            <i class="fas fa-ellipsis-v"></i>
+          </button>
+          <div id="menuDropdown" class="menu-dropdown">
+            <a href="#" class="menu-dropdown-item">알림 끄기</a>
+            <a href="#" class="menu-dropdown-item">대화 상대 차단</a>
+            <a href="#" class="menu-dropdown-item">신고</a>
+          </div>
+        </div>
+      </header>
+
+      <div class="content-scrollable messages-area" id="messagesArea"></div>
+
+      <div class="chat-input-area">
+        <input
+          type="file"
+          id="fileInput"
+          accept="image/*"
+          class="input-hidden"
+        />
+        <button id="uploadBtn" class="upload-btn">
+          <i class="fas fa-plus"></i>
+        </button>
+
+        <input
+          type="text"
+          class="chat-input"
+          id="messageInput"
+          placeholder="Type a message..."
+          autocomplete="off"
+        />
+        <button class="send-btn" onclick="sendMessage()">
+          <i class="fas fa-paper-plane"></i>
+        </button>
+      </div>
+    </div>
+    <div id="imageModal" class="image-modal">
+      <span class="close-modal">&times;</span>
+      <img class="modal-content" id="modalImage" />
+    </div>
+
+    <script th:inline="javascript">
+      const roomId = /*[[${roomId}]]*/ "room1";
+      const userId = /*[[${userId}]]*/ 1;
+      let stompClient = null;
+      let lastDateKey = null;
+
+      async function loadHistory() {
+        try {
+          const res = await fetch(
+            `/api/v1/chats/rooms/${roomId}/messages?page=0&size=50`,
+          );
+          const body = await res.json();
+          if (!body.data) return;
+          body.data.forEach(showMessage);
+        } catch (e) {
+          console.error("history load error", e);
+        }
+      }
+
+      function connect() {
+        const socket = new SockJS("/ws/chat");
+        stompClient = Stomp.over(socket);
+        stompClient.debug = null; // Disable debug logs
+
+        stompClient.connect(
+          {},
+          function (frame) {
+            console.log("Connected: " + frame);
+
+            stompClient.subscribe("/topic/chats/" + roomId, function (message) {
+              showMessage(JSON.parse(message.body));
+            });
+          },
+          function (error) {
+            console.error("Connection error:", error);
+          },
+        );
+      }
+
+      function sendMessage() {
+        const input = document.getElementById("messageInput");
+        const content = input.value.trim();
+
+        if (!content || !stompClient) return;
+
+        const message = {
+          sender_user_id: userId,
+          content: content,
+        };
+
+        stompClient.send("/pub/chats/" + roomId, {}, JSON.stringify(message));
+        input.value = "";
+      }
+
+      function showMessage(message) {
+        const messagesArea = document.getElementById("messagesArea");
+        const sentDate = message.sent_at
+          ? new Date(message.sent_at)
+          : new Date();
+        const dateKey = sentDate.toISOString().slice(0, 10);
+        const dateLabel = sentDate.toLocaleDateString("ko-KR", {
+          year: "numeric",
+          month: "2-digit",
+          day: "2-digit",
+        });
+
+        if (lastDateKey !== dateKey) {
+          const dateDiv = document.createElement("div");
+          dateDiv.className = "date-separator";
+          dateDiv.textContent = dateLabel;
+          messagesArea.appendChild(dateDiv);
+          lastDateKey = dateKey;
+        }
+
+        const messageContainer = document.createElement("div");
+        const isMe = message.sender_user_id === userId;
+        messageContainer.className = isMe
+          ? "message-wrapper me"
+          : "message-wrapper other";
+
+        const bubble = document.createElement("div");
+        bubble.className = "message-bubble";
+
+        const time = sentDate.toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit",
+        });
+
+        if (
+          message.type === "IMAGE" ||
+          (message.content && message.content.startsWith("data:image"))
+        ) {
+          const img = document.createElement("img");
+          let src = message.content;
+          if (src && src.includes("http://minio:9000")) {
+            src = src.replace("http://minio:9000", "http://localhost:9000");
+          }
+          img.src = src;
+          img.style.maxWidth = "100%";
+          img.style.borderRadius = "10px";
+          img.style.cursor = "zoom-in";
+          bubble.appendChild(img);
+
+          img.addEventListener("click", function () {
+            const modal = document.getElementById("imageModal");
+            const modalImg = document.getElementById("modalImage");
+            modal.style.display = "flex";
+            modalImg.src = this.src;
+          });
+        } else {
+          bubble.innerHTML = message.content;
+        }
+
+        const timeDiv = document.createElement("div");
+        timeDiv.className = "message-time";
+        timeDiv.textContent = time;
+
+        messageContainer.appendChild(bubble);
+        messageContainer.appendChild(timeDiv);
+
+        messagesArea.appendChild(messageContainer);
+        messagesArea.scrollTop = messagesArea.scrollHeight;
+      }
+
+      // Handle Enter key
+      document
+        .getElementById("messageInput")
+        .addEventListener("keypress", function (e) {
+          if (e.key === "Enter") {
+            sendMessage();
+          }
+        });
+      document.getElementById("uploadBtn").addEventListener("click", () => {
+        document.getElementById("fileInput").click();
+      });
+      document
+        .getElementById("fileInput")
+        .addEventListener("change", async (e) => {
+          const file = e.target.files && e.target.files[0];
+          if (!file) return;
+
+          const formData = new FormData();
+          formData.append("file", file);
+
+          try {
+            const res = await fetch("/chats/image/upload", {
+              method: "POST",
+              body: formData,
+            });
+
+            if (res.ok) {
+              const data = await res.json();
+              const imageUrl = data.url;
+
+              if (stompClient) {
+                const message = {
+                  sender_user_id: userId,
+                  content: imageUrl,
+                  type: "IMAGE",
+                };
+                stompClient.send(
+                  "/pub/chats/" + roomId,
+                  {},
+                  JSON.stringify(message),
+                );
+              }
+            } else {
+              alert("Failed to upload image");
+            }
+          } catch (error) {
+            console.error("Error uploading image:", error);
+            alert("Error uploading image");
+          }
+
+          e.target.value = "";
+        });
+      const modal = document.getElementById("imageModal");
+      const modalImg = document.getElementById("modalImage");
+      const closeBtn = document.getElementsByClassName("close-modal")[0];
+      if (modal && modalImg && closeBtn) {
+        closeBtn.onclick = function () {
+          modal.style.display = "none";
+          modalImg.src = "";
+        };
+        modal.onclick = function (e) {
+          if (e.target === modal) {
+            modal.style.display = "none";
+            modalImg.src = "";
+          }
+        };
+      }
+      document.getElementById("menuBtn").addEventListener("click", () => {
+        const menu = document.getElementById("menuDropdown");
+        menu.style.display = menu.style.display === "none" ? "block" : "none";
+      });
+      loadHistory().then(connect);
+    </script>
+  </body>
+</html>

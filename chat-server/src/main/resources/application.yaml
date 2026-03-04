@@ -1,0 +1,50 @@
+server:
+  port: 8082
+
+spring:
+  application:
+    name: chat-server
+
+  data:
+    mongodb:
+      uri: mongodb://localhost:27017/blind_date_chat
+
+    redis:
+      host: localhost
+      port: 6379
+
+  kafka:
+    bootstrap-servers: localhost:9092
+
+  servlet:
+    multipart:
+      max-file-size: 20MB
+      max-request-size: 20MB
+
+chat:
+  kafka:
+    topics:
+      message: chat-message
+      user-activity: user-activity
+
+mongock:
+  migration-scan-package: com.project.blinddate.chat.migration
+
+logging:
+  level:
+    org.springframework.web: info
+
+minio:
+  endpoint: http://localhost:9000
+  public-endpoint: http://localhost:9000
+  access-key: minio_access_key
+  secret-key: minio_secret_key
+  bucket: blind-date-chat
+
+external:
+  user-server:
+    url: http://localhost:8081
+
+user:
+  presence:
+    key-prefix: "user:presence:"

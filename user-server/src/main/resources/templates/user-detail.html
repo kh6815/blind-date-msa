@@ -1,0 +1,193 @@
+<!doctype html>
+<html xmlns:th="http://www.thymeleaf.org">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>GRIZZLY - Profile</title>
+    <link rel="stylesheet" href="/css/style.css" />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+    />
+  </head>
+  <body>
+    <div class="container">
+      <div class="content-scrollable">
+        <!-- Header Image -->
+        <div class="profile-header">
+          <a href="/" class="back-button">
+            <i class="fas fa-arrow-left"></i>
+          </a>
+          <div id="image-slider" class="slider-container">
+            <!-- Main Profile Image -->
+            <img
+              th:if="${user.profileImageUrl != null}"
+              th:src="${user.profileImageUrl}"
+              class="profile-image-full"
+              style="display: block"
+            />
+            <img
+              th:unless="${user.profileImageUrl != null}"
+              src="https://randomuser.me/api/portraits/lego/1.jpg"
+              class="profile-image-full"
+              style="display: block"
+            />
+
+            <!-- Additional Images -->
+            <img
+              th:each="img : ${user.imageUrls}"
+              th:src="${img}"
+              class="profile-image-full"
+              style="display: none"
+            />
+
+            <button
+              type="button"
+              id="prevBtn"
+              class="slider-btn slider-btn-prev"
+            >
+              &#8592;
+            </button>
+            <button
+              type="button"
+              id="nextBtn"
+              class="slider-btn slider-btn-next"
+            >
+              &#8594;
+            </button>
+          </div>
+          <script>
+            document.addEventListener("DOMContentLoaded", function () {
+              const images = document.querySelectorAll(
+                "#image-slider .profile-image-full",
+              );
+              let current = 0;
+              function show(idx) {
+                images.forEach(
+                  (img, i) =>
+                    (img.style.display = i === idx ? "block" : "none"),
+                );
+              }
+              document.getElementById("prevBtn").onclick = function (e) {
+                e.stopPropagation(); // Prevent modal opening
+                current = (current - 1 + images.length) % images.length;
+                show(current);
+              };
+              document.getElementById("nextBtn").onclick = function (e) {
+                e.stopPropagation(); // Prevent modal opening
+                current = (current + 1) % images.length;
+                show(current);
+              };
+
+              // Modal Logic
+              const modal = document.getElementById("imageModal");
+              const modalImg = document.getElementById("modalImage");
+              const closeBtn =
+                document.getElementsByClassName("close-modal")[0];
+
+              images.forEach((img) => {
+                img.style.cursor = "zoom-in";
+                img.addEventListener("click", function () {
+                  modal.style.display = "flex";
+                  modalImg.src = this.src;
+                });
+              });
+
+              closeBtn.onclick = function () {
+                modal.style.display = "none";
+              };
+
+              modal.onclick = function (e) {
+                if (e.target === modal) {
+                  modal.style.display = "none";
+                }
+              };
+            });
+          </script>
+        </div>
+
+        <!-- Profile Info -->
+        <div class="profile-info-container">
+          <div class="profile-title-row">
+            <h1 class="profile-name-large">
+              <span th:text="${user.nickname}">Name</span>,
+              <span th:text="${user.age}">25</span>
+            </h1>
+            <div class="tag tag-online">
+              <i class="fas fa-circle online-dot"></i>
+              Online
+            </div>
+          </div>
+
+          <p class="location-text">
+            <i class="fas fa-map-marker-alt"></i>
+            <span th:text="${user.location}">Location</span>
+          </p>
+
+          <div class="info-section">
+            <div class="info-label">Job</div>
+            <div class="info-value" th:text="${user.job}">Designer</div>
+          </div>
+
+          <div class="info-section">
+            <div class="info-label">About</div>
+            <div class="info-value about-text" th:text="${user.description}">
+              Hello! I'm looking for someone to share coffee with.
+            </div>
+          </div>
+
+          <div class="info-section">
+            <div class="info-label">MBTI</div>
+            <div class="tag-container">
+              <span class="tag" th:text="${user.mbti}">ENFP</span>
+            </div>
+          </div>
+
+          <div class="info-section">
+            <div class="info-label">Interests</div>
+            <div class="tag-container">
+              <span
+                class="tag"
+                th:each="interest : ${user.interestList}"
+                th:text="${interest}"
+                >Travel</span
+              >
+            </div>
+          </div>
+
+          <div class="action-buttons">
+            <a href="/" class="btn-action btn-pass">
+              <i class="fas fa-times"></i> Pass
+            </a>
+            <a
+              th:href="@{'http://localhost:8082/chats/room/create?targetUserId=' + ${user.id} + '&myId=' + ${currentUser.id}}"
+              class="btn-action btn-chat"
+            >
+              <i class="fas fa-comment"></i> Chat
+            </a>
+          </div>
+        </div>
+
+        <!-- Navigation (홈과 동일한 하단 네비) -->
+      </div>
+      <nav class="bottom-nav">
+        <a href="/" class="nav-item">
+          <i class="fas fa-home"></i>
+        </a>
+        <a
+          th:href="@{'http://localhost:8082/chats?userId=' + ${currentUser.id}}"
+          class="nav-item"
+          ><i class="fas fa-comment-alt"></i
+        ></a>
+        <a href="#" class="nav-item"><i class="fas fa-heart"></i></a>
+        <a href="/profile" class="nav-item"> <i class="fas fa-user"></i></a>
+      </nav>
+    </div>
+
+    <!-- Image Modal -->
+    <div id="imageModal" class="image-modal">
+      <span class="close-modal">&times;</span>
+      <img class="modal-content" id="modalImage" />
+    </div>
+  </body>
+</html>

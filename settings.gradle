@@ -1,0 +1,4 @@
+rootProject.name = 'blind-date'
+
+include 'user-server'
+include 'chat-server'

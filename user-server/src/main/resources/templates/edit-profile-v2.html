@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>프로필 수정</title>
+    <link rel="stylesheet" href="/css/user-v2.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-left">
+                <a href="/v2/profile" class="back-btn">
+                    <i class="fas fa-chevron-left" style="color: var(--text-primary); font-size: 1.2rem;"></i>
+                </a>
+            </div>
+            <div class="header-title">프로필 수정</div>
+            <div class="header-right">
+                <!-- Empty for balance -->
+            </div>
+        </header>
+
+        <!-- Form Content -->
+        <div class="content-scrollable form-container">
+            <form action="/profile/edit" method="post" enctype="multipart/form-data">
+                <input type="hidden" name="version" value="v2">
+                
+                <!-- Main Profile Image -->
+                <div class="form-group">
+                    <label class="form-label">프로필 사진 (대표)</label>
+                    <div class="preview-image-container">
+                        <img id="mainImagePreview" 
+                             th:src="${user.profileImageUrl != null ? user.profileImageUrl : 'https://placehold.co/120x120?text=User'}" 
+                             class="main-preview-image">
+                    </div>
+                    <input type="file" name="profileImageFile" class="form-control" accept="image/*" onchange="previewMainImage(event)">
+                </div>
+
+                <!-- Additional Images -->
+                <div class="form-group">
+                    <label class="form-label">추가 이미지 (최대 5장)</label>
+                    
+                    <!-- Existing Images -->
+                    <div id="existingImagesContainer" class="existing-images-container" th:if="${not #lists.isEmpty(user.imageUrls)}">
+                        <div th:each="img : ${user.imageUrls}" class="existing-image-wrapper">
+                            <img th:src="${img}" class="existing-image">
+                            <button type="button" th:data-image-url="${img}" onclick="deleteExistingImage(this)" class="delete-image-btn">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Deleted Images Hidden Inputs -->
+                    <div id="deletedImagesInputs"></div>
+
+                    <input type="file" name="profileImageFiles" class="form-control" accept="image/*" multiple onchange="previewImages(event)">
+                    <div id="imagePreview" class="new-image-preview"></div>
+                </div>
+
+                <!-- Text Fields -->
+                <div class="form-group">
+                    <label class="form-label">닉네임</label>
+                    <input type="text" name="nickname" class="form-control" th:value="${user.nickname}" required>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">직업</label>
+                    <input type="text" name="job" class="form-control" th:value="${user.job}">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">MBTI</label>
+                    <input type="text" name="mbti" class="form-control" th:value="${user.mbti}" placeholder="예: INTJ">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">관심사 (쉼표로 구분)</label>
+                    <input type="text" name="interests" class="form-control" th:value="${user.interests}" placeholder="운동, 여행, 영화">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">자기소개</label>
+                    <textarea name="description" class="form-control" rows="4" th:text="${user.description}"></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">위치</label>
+                    <input type="text" name="location" class="form-control" th:value="${user.location}" placeholder="서울 강남구">
+                </div>
+
+                <button type="submit" class="btn-primary">저장하기</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- JavaScript for Image Preview -->
+    <script>
+        function previewMainImage(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    document.getElementById('mainImagePreview').src = e.target.result;
+                }
+                reader.readAsDataURL(file);
+            }
+        }
+
+        function deleteExistingImage(btn) {
+            const imageUrl = btn.getAttribute('data-image-url');
+            btn.parentElement.style.display = 'none';
+            
+            const container = document.getElementById('deletedImagesInputs');
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = 'deletedImages';
+            input.value = imageUrl;
+            container.appendChild(input);
+        }
+
+        function previewImages(event) {
+            const files = event.target.files;
+            const preview = document.getElementById('imagePreview');
+            preview.innerHTML = '';
+            
+            Array.from(files).forEach(file => {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const img = document.createElement('img');
+                    img.src = e.target.result;
+                    img.className = 'preview-thumb';
+                    preview.appendChild(img);
+                }
+                reader.readAsDataURL(file);
+            });
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,284 @@
+{
+	"info": {
+		"_postman_id": "blind-date-collection-v1",
+		"name": "Blind Date API",
+		"description": "소개팅 서비스(User Server, Chat Server) API 컬렉션",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "User Server",
+			"item": [
+				{
+					"name": "회원가입",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"email\": \"user@example.com\",\n    \"password\": \"P@ssw0rd!\",\n    \"nickname\": \"춘식이\",\n    \"gender\": \"MALE\",\n    \"birth_date\": \"1995-05-10\",\n    \"mbti\": \"INTJ\",\n    \"interests\": \"축구,영화,여행\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{user_server_url}}/api/v1/users",
+							"host": [
+								"{{user_server_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"users"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "유저 단건 조회",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{user_server_url}}/api/v1/users/1",
+							"host": [
+								"{{user_server_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"users",
+								"1"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "추천 유저 조회",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{user_server_url}}/api/v1/users/recommend?gender=FEMALE&mbti=ENFP&limit=10",
+							"host": [
+								"{{user_server_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"users",
+								"recommend"
+							],
+							"query": [
+								{
+									"key": "gender",
+									"value": "FEMALE"
+								},
+								{
+									"key": "mbti",
+									"value": "ENFP"
+								},
+								{
+									"key": "interests",
+									"value": "영화",
+									"disabled": true
+								},
+								{
+									"key": "limit",
+									"value": "10"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Chat Server",
+			"item": [
+				{
+					"name": "채팅방 생성",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"participant_user_ids\": [1, 2]\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{chat_server_url}}/api/v1/chats/rooms",
+							"host": [
+								"{{chat_server_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"chats",
+								"rooms"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "채팅 메시지 조회",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{chat_server_url}}/api/v1/chats/rooms/:roomId/messages?page=0&size=20",
+							"host": [
+								"{{chat_server_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"chats",
+								"rooms",
+								":roomId",
+								"messages"
+							],
+							"query": [
+								{
+									"key": "page",
+									"value": "0"
+								},
+								{
+									"key": "size",
+									"value": "20"
+								}
+							],
+							"variable": [
+								{
+									"key": "roomId",
+									"value": "ROOM_ID_HERE"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "온라인 유저 등록",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{chat_server_url}}/api/v1/chats/rooms/:roomId/presence/online?user_id=1",
+							"host": [
+								"{{chat_server_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"chats",
+								"rooms",
+								":roomId",
+								"presence",
+								"online"
+							],
+							"query": [
+								{
+									"key": "user_id",
+									"value": "1"
+								}
+							],
+							"variable": [
+								{
+									"key": "roomId",
+									"value": "ROOM_ID_HERE"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "온라인 유저 해제",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{chat_server_url}}/api/v1/chats/rooms/:roomId/presence/offline?user_id=1",
+							"host": [
+								"{{chat_server_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"chats",
+								"rooms",
+								":roomId",
+								"presence",
+								"offline"
+							],
+							"query": [
+								{
+									"key": "user_id",
+									"value": "1"
+								}
+							],
+							"variable": [
+								{
+									"key": "roomId",
+									"value": "ROOM_ID_HERE"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "온라인 유저 목록 조회",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{chat_server_url}}/api/v1/chats/rooms/:roomId/presence",
+							"host": [
+								"{{chat_server_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"chats",
+								"rooms",
+								":roomId",
+								"presence"
+							],
+							"variable": [
+								{
+									"key": "roomId",
+									"value": "ROOM_ID_HERE"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		}
+	],
+	"variable": [
+		{
+			"key": "user_server_url",
+			"value": "http://localhost:8081",
+			"type": "string"
+		},
+		{
+			"key": "chat_server_url",
+			"value": "http://localhost:8082",
+			"type": "string"
+		}
+	]
+}

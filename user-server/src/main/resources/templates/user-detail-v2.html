@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>프로필 상세</title>
+    <link rel="stylesheet" href="/css/user-v2.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-left">
+                <a href="/v2/home" class="back-btn">
+                    <i class="fas fa-arrow-left" style="color: var(--text-primary); font-size: 1.2rem;"></i>
+                </a>
+            </div>
+            <div class="header-title" th:text="${user.nickname}">닉네임</div>
+            <div class="header-right">
+                <i class="fas fa-ellipsis-v" style="color: var(--text-secondary); font-size: 1.2rem;"></i>
+            </div>
+        </header>
+
+        <!-- Profile Content -->
+        <div class="content-scrollable">
+            <!-- Main Image -->
+            <div class="detail-image" 
+                 th:style="'background-image: url(' + (${user.profileImageUrl != null ? user.profileImageUrl : 'https://placehold.co/100x100?text=User'}) + ')'">
+            </div>
+
+            <!-- User Info -->
+            <div class="detail-info">
+                <div class="profile-name-large">
+                    <span th:text="${user.nickname}">닉네임</span>, 
+                    <span th:text="${user.age}">25</span>
+                </div>
+                
+                <div class="user-detail" style="margin-bottom: 20px;">
+                    <i class="fas fa-map-marker-alt" style="margin-right: 5px; color: var(--accent-color);"></i>
+                    <span th:text="${user.location != null ? user.location : '알 수 없음'}">서울</span>
+                    <span th:if="${user.distance != null}" th:text="' · ' + ${#numbers.formatDecimal(user.distance, 1, 1)} + 'km'"> · 1.2km</span>
+                </div>
+
+                <hr style="border-color: #333; margin-bottom: 20px;">
+
+                <!-- Job -->
+                <div class="detail-section">
+                    <div class="detail-label">직업</div>
+                    <div class="detail-text" th:text="${user.job}">직업 정보 없음</div>
+                </div>
+
+                <!-- About -->
+                <div class="detail-section">
+                    <div class="detail-label">자기소개</div>
+                    <div class="detail-text" th:text="${user.description}">자기소개가 없습니다.</div>
+                </div>
+
+                <!-- MBTI -->
+                <div class="detail-section">
+                    <div class="detail-label">MBTI</div>
+                    <div class="tag-container">
+                        <span class="tag" th:text="${user.mbti}">MBTI</span>
+                    </div>
+                </div>
+
+                <!-- Interests -->
+                <div class="detail-section">
+                    <div class="detail-label">관심사</div>
+                    <div class="tag-container">
+                        <span th:each="interest : ${user.interestList}" class="tag" th:text="${interest}">여행</span>
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="action-buttons">
+                    <button class="btn-action btn-pass" onclick="location.href='/v2/home'">
+                        <i class="fas fa-times"></i> 패스
+                    </button>
+                    <button class="btn-action btn-chat" 
+                            th:onclick="'location.href=\'http://localhost:8082/chats/room/create?targetUserId=' + ${user.id} + '&myId=' + ${currentUser.id} + '\''">
+                        <i class="fas fa-comment"></i> 대화하기
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

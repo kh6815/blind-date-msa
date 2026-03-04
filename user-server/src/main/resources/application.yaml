@@ -1,0 +1,71 @@
+server:
+  port: 8081
+
+spring:
+  application:
+    name: user-server
+
+  datasource:
+    url: jdbc:mysql://localhost:3306/blind_date_user?serverTimezone=UTC&characterEncoding=UTF-8
+    username: user
+    password: password
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        format_sql: true
+        show_sql: true
+
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+
+  servlet:
+    multipart:
+      max-file-size: 50MB
+      max-request-size: 50MB
+
+  data:
+    redis:
+      host: localhost
+      port: 6379
+
+  kafka:
+    bootstrap-servers: localhost:9092
+    consumer:
+      group-id: user-group
+      auto-offset-reset: latest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+
+chat:
+  kafka:
+    topics:
+      message: chat-message
+
+minio:
+  endpoint: http://localhost:9000
+  public-endpoint: http://localhost:9000
+  access-key: minio_access_key
+  secret-key: minio_secret_key
+  bucket: blind-date-user
+
+jwt:
+  secret: "your-256-bit-secret-your-256-bit-secret-your-256-bit-secret"
+  expiration: 86400000 # 24 hours
+
+logging:
+  level:
+    org.hibernate.SQL: debug
+
+user:
+  kafka:
+    topics:
+      activity: user-activity
+  auth:
+    key-prefix: "user:token:"
+  presence:
+    key-prefix: "user:presence:"

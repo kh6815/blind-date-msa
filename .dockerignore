@@ -1,0 +1,28 @@
+# IDE
+.idea
+.vscode
+.settings
+.classpath
+.project
+bin/
+out/
+
+# Gradle
+.gradle
+build/
+**/build/
+
+# Git
+.git
+.gitignore
+
+# Docker
+docker-compose.yml
+Dockerfile
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log

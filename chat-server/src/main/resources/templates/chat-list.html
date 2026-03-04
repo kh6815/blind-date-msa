@@ -1,0 +1,72 @@
+<!doctype html>
+<html xmlns:th="http://www.thymeleaf.org">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>GRIZZLY - Chats</title>
+    <link rel="stylesheet" href="/css/style.css" />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+    />
+  </head>
+  <body>
+    <div class="container">
+      <div class="content-scrollable">
+        <div th:if="${#lists.isEmpty(rooms)}" class="empty-state">
+          <i class="fas fa-comments empty-icon"></i>
+          <p>참여 중인 채팅방이 없습니다.</p>
+          <a href="http://localhost:8081/" class="btn-home-link">
+            <i class="fas fa-search"></i> 친구 찾으러 가기
+          </a>
+        </div>
+        <a
+          th:each="room : ${rooms}"
+          th:href="@{'/chats/room/' + ${room.id} + '?userId=' + ${userId}}"
+          class="chat-item"
+        >
+          <div
+            class="avatar"
+            th:style="'background-image: url(' + (${room.targetUserImageUrl != null ? room.targetUserImageUrl : 'https://randomuser.me/api/portraits/lego/1.jpg'}) + ')'"
+          ></div>
+          <div class="chat-info">
+            <div class="chat-name">
+              <span th:text="${room.targetUserNickname}">닉네임</span>
+              <span
+                class="chat-time"
+                th:text="${room.lastMessageAt != null ? #temporals.format(room.lastMessageAt, 'yyyy-MM-dd HH:mm') : ''}"
+              ></span>
+            </div>
+            <div class="chat-preview" th:text="${room.lastMessagePreview}">
+              메시지 미리보기
+            </div>
+          </div>
+        </a>
+
+        <div th:if="${hasNext}" class="load-more-container">
+          <a
+            th:href="@{'/chats'(userId=${userId}, page=${nextPage})}"
+            class="btn-load-more"
+          >
+            더 보기
+          </a>
+        </div>
+      </div>
+
+      <nav class="bottom-nav">
+        <a href="http://localhost:8081/" class="nav-item"
+          ><i class="fas fa-home"></i
+        ></a>
+        <a
+          th:href="@{'http://localhost:8082/chats?userId=' + ${userId}}"
+          class="nav-item active"
+          ><i class="fas fa-comment-alt"></i
+        ></a>
+        <a href="#" class="nav-item"><i class="fas fa-heart"></i></a>
+        <a href="http://localhost:8081/profile" class="nav-item"
+          ><i class="fas fa-user"></i
+        ></a>
+      </nav>
+    </div>
+  </body>
+</html>

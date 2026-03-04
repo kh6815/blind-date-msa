@@ -1,0 +1,37 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: blind-date-ingress
+  namespace: blind-date
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "600"
+spec:
+  rules:
+    - host: api.blind-date.local
+      http:
+        paths:
+          - path: /api/v1/users
+            pathType: Prefix
+            backend:
+              service:
+                name: user-server
+                port:
+                  number: 80
+          - path: /api/v1/chats
+            pathType: Prefix
+            backend:
+              service:
+                name: chat-server
+                port:
+                  number: 80
+          - path: /ws/chat
+            pathType: Prefix
+            backend:
+              service:
+                name: chat-server
+                port:
+                  number: 80
+
+
