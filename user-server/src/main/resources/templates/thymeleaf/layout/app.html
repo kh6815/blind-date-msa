@@ -1,0 +1,19 @@
+<!doctype html>
+<html xmlns:th="http://www.thymeleaf.org" th:fragment="layout(content, showFilter, active, currentUserId)">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title th:text="${pageTitle} ?: 'GRIZZLY'">GRIZZLY</title>
+    <link rel="stylesheet" href="/css/style.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
+  </head>
+  <body>
+    <div class="container">
+      <th:block th:replace="thymeleaf/fragments/header :: header(${showFilter})"></th:block>
+      <div class="content-scrollable">
+        <th:block th:insert="${content}"></th:block>
+      </div>
+      <th:block th:replace="thymeleaf/fragments/bottom :: bottomNav(${active}, ${currentUserId})"></th:block>
+    </div>
+  </body>
+</html>

@@ -1,19 +1,6 @@
 <!doctype html>
-<html xmlns:th="http://www.thymeleaf.org">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>GRIZZLY - Profile</title>
-    <link rel="stylesheet" href="/css/bak/style.css" />
-    <link
-      rel="stylesheet"
-      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
-    />
-  </head>
-  <body>
-    <div class="container">
-      <div class="content-scrollable">
-        <!-- Header Image -->
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{thymeleaf/layout/app :: layout(~{::section}, ${false}, 'home', ${currentUser.id})}">
+<section>
         <div class="profile-header">
           <a href="/" class="back-button">
             <i class="fas fa-arrow-left"></i>
@@ -159,35 +146,20 @@
             <a href="/" class="btn-action btn-pass">
               <i class="fas fa-times"></i> Pass
             </a>
-            <a
-              th:href="@{'http://localhost:8082/chats/room/create?targetUserId=' + ${user.id} + '&myId=' + ${currentUser.id}}"
+            <a th:href="${@environment.getProperty('external.chat-server.url') + '/chats/room/create?targetUserId=' + user.id + '&myId=' + currentUser.id}"
               class="btn-action btn-chat"
             >
               <i class="fas fa-comment"></i> Chat
             </a>
           </div>
         </div>
-
-        <!-- Navigation (홈과 동일한 하단 네비) -->
-      </div>
-      <nav class="bottom-nav">
-        <a href="/" class="nav-item">
-          <i class="fas fa-home"></i>
-        </a>
-        <a
-          th:href="@{'http://localhost:8082/chats?userId=' + ${currentUser.id}}"
-          class="nav-item"
-          ><i class="fas fa-comment-alt"></i
-        ></a>
-        <a href="#" class="nav-item"><i class="fas fa-heart"></i></a>
-        <a href="/profile" class="nav-item"> <i class="fas fa-user"></i></a>
-      </nav>
+    <div id="imageModal" class="image-modal">
+      <span class="close-modal">&times;</span>
+      <img class="modal-content" id="modalImage" />
     </div>
-
     <!-- Image Modal -->
     <div id="imageModal" class="image-modal">
       <span class="close-modal">&times;</span>
       <img class="modal-content" id="modalImage" />
     </div>
-  </body>
-</html>
+</section>

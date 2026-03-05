@@ -1,11 +1,13 @@
 package com.project.blinddate.user.service;
 
 import com.project.blinddate.user.domain.User;
+import com.project.blinddate.user.domain.UserImage;
 import com.project.blinddate.user.dto.UserRegisterRequest;
 import com.project.blinddate.user.dto.UserResponse;
 import com.project.blinddate.user.dto.UserSearchCondition;
 import com.project.blinddate.user.dto.UserUpdateRequest;
 import com.project.blinddate.user.mapper.UserMapper;
+import com.project.blinddate.user.repository.UserImageRepository;
 import com.project.blinddate.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -26,7 +28,7 @@ public class UserService {
 
     private final UserRepository userRepository;
     private final UserMapper userMapper;
-    private final com.project.blinddate.user.repository.UserImageRepository userImageRepository;
+    private final UserImageRepository userImageRepository;
     private final UserKafkaProducer userKafkaProducer;
 
     @Transactional
@@ -55,13 +57,13 @@ public class UserService {
         return fixProfileImageUrl(userMapper.toResponse(saved));
     }
 
-        @Transactional(readOnly = true)
+    @Transactional(readOnly = true)
     public UserResponse getUser(Long id) {
         User user = userRepository.findById(id)
             .orElseThrow(() -> new IllegalArgumentException("유저를 찾을 수 없습니다."));
         java.util.List<String> imageUrls = userImageRepository.findByUser(user)
             .stream()
-            .map(com.project.blinddate.user.domain.UserImage::getImageUrl)
+            .map(UserImage::getImageUrl)
             .toList();
         UserResponse response = UserResponse.builder()
             .id(user.getId())
@@ -190,7 +192,7 @@ public class UserService {
         // Refresh images from DB to ensure deleted images are gone
         java.util.List<String> imageUrls = userImageRepository.findByUser(user)
                 .stream()
-                .map(com.project.blinddate.user.domain.UserImage::getImageUrl)
+                .map(UserImage::getImageUrl)
                 .toList();
         
         UserResponse response = UserResponse.builder()

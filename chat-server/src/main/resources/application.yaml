@@ -7,14 +7,14 @@ spring:
 
   data:
     mongodb:
-      uri: mongodb://localhost:27017/blind_date_chat
+      uri: ${SPRING_DATA_MONGODB_URI:mongodb://localhost:27017/blind_date_chat}
 
     redis:
       host: localhost
       port: 6379
 
   kafka:
-    bootstrap-servers: localhost:9092
+    bootstrap-servers: ${SPRING_KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
 
   servlet:
     multipart:
@@ -35,15 +35,15 @@ logging:
     org.springframework.web: info
 
 minio:
-  endpoint: http://localhost:9000
-  public-endpoint: http://localhost:9000
-  access-key: minio_access_key
-  secret-key: minio_secret_key
-  bucket: blind-date-chat
+  endpoint: ${MINIO_ENDPOINT:http://localhost:9000}
+  public-endpoint: ${MINIO_PUBLIC_ENDPOINT:http://localhost:9000}
+  access-key: ${MINIO_ACCESS_KEY:}
+  secret-key: ${MINIO_SECRET_KEY:}
+  bucket: ${MINIO_BUCKET:blind-date-chat}
 
 external:
   user-server:
-    url: http://localhost:8081
+    url: ${EXTERNAL_USER_SERVER_URL:http://localhost:8081}
 
 user:
   presence:

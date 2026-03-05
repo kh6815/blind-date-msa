@@ -6,9 +6,9 @@ spring:
     name: user-server
 
   datasource:
-    url: jdbc:mysql://localhost:3306/blind_date_user?serverTimezone=UTC&characterEncoding=UTF-8
-    username: user
-    password: password
+    url: ${SPRING_DATASOURCE_URL:jdbc:mysql://localhost:3306/blind_date_user?serverTimezone=UTC&characterEncoding=UTF-8}
+    username: ${SPRING_DATASOURCE_USERNAME:}
+    password: ${SPRING_DATASOURCE_PASSWORD:}
     driver-class-name: com.mysql.cj.jdbc.Driver
 
   jpa:
@@ -47,19 +47,23 @@ chat:
       message: chat-message
 
 minio:
-  endpoint: http://localhost:9000
-  public-endpoint: http://localhost:9000
-  access-key: minio_access_key
-  secret-key: minio_secret_key
-  bucket: blind-date-user
+  endpoint: ${MINIO_ENDPOINT:http://localhost:9000}
+  public-endpoint: ${MINIO_PUBLIC_ENDPOINT:http://localhost:9000}
+  access-key: ${MINIO_ACCESS_KEY:}
+  secret-key: ${MINIO_SECRET_KEY:}
+  bucket: ${MINIO_BUCKET:blind-date-user}
 
 jwt:
-  secret: "your-256-bit-secret-your-256-bit-secret-your-256-bit-secret"
-  expiration: 86400000 # 24 hours
+  secret: ${JWT_SECRET:}
+  expiration: ${JWT_EXPIRATION:86400000}
 
 logging:
   level:
     org.hibernate.SQL: debug
+
+external:
+  chat-server:
+    url: ${EXTERNAL_CHAT_SERVER_URL:http://localhost:8082}
 
 user:
   kafka:

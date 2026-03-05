@@ -19,5 +19,5 @@
   - 헬스 체크: `GET /api/v1/chats/health`
 
 Gradle 멀티 모듈 구조이므로 루트에서 `./gradlew :user-server:bootRun`, `./gradlew :chat-server:bootRun` 으로 각각 실행합니다.
-또는  `docker compose up -d --build user-server chat-server` 를 통해 docker 바로 실행
+또는  `docker compose up -d --build user-server-1 user-server-2 chat-server-1 chat-server-2` 를 통해 docker 바로 실행
 

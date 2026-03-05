@@ -1,0 +1,24 @@
+<!doctype html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{thymeleaf/layout/app :: layout(~{::section}, 'chat')}">
+<section>
+  <div th:if="${#lists.isEmpty(rooms)}" class="empty-state">
+    <i class="fas fa-comments empty-icon"></i>
+    <p>참여 중인 채팅방이 없습니다.</p>
+    <a th:href="${@environment.getProperty('external.user-server.url')}" class="btn-home-link">
+      <i class="fas fa-search"></i> 친구 찾으러 가기
+    </a>
+  </div>
+  <a th:each="room : ${rooms}" th:href="@{'/chats/room/' + ${room.id} + '?userId=' + ${userId}}" class="chat-item">
+    <div class="avatar" th:style="'background-image: url(' + (${room.targetUserImageUrl != null ? room.targetUserImageUrl : 'https://randomuser.me/api/portraits/lego/1.jpg'}) + ')'"></div>
+    <div class="chat-info">
+      <div class="chat-name">
+        <span th:text="${room.targetUserNickname}">닉네임</span>
+        <span class="chat-time" th:text="${room.lastMessageAt != null ? #temporals.format(room.lastMessageAt, 'yyyy-MM-dd HH:mm') : ''}"></span>
+      </div>
+      <div class="chat-preview" th:text="${room.lastMessagePreview}">메시지 미리보기</div>
+    </div>
+  </a>
+  <div th:if="${hasNext}" class="load-more-container">
+    <a th:href="@{'/chats'(userId=${userId}, page=${nextPage})}" class="btn-load-more">더 보기</a>
+  </div>
+</section>

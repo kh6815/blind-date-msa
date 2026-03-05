@@ -1,25 +1,13 @@
 <!doctype html>
-<html xmlns:th="http://www.thymeleaf.org">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>GRIZZLY - Chat Room</title>
-    <link rel="stylesheet" href="/css/bak/style.css" />
-    <link
-      rel="stylesheet"
-      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
-    />
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{thymeleaf/layout/app :: layout(~{::section}, 'chat')}">
+<section>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/sockjs-client/1.6.1/sockjs.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
-  </head>
-  <body>
-    <div class="container">
       <header class="chat-room-header">
         <a th:href="@{'/chats?userId=' + ${userId}}" class="back-btn"
           ><i class="fas fa-chevron-left"></i
         ></a>
-        <a
-          th:href="@{'http://localhost:8081/users/' + ${targetUserId}}"
+        <a th:href="${@environment.getProperty('external.user-server.url')} + '/users/' + ${targetUserId}"
           class="chat-room-header-link"
         >
           <div
@@ -76,7 +64,6 @@
           <i class="fas fa-paper-plane"></i>
         </button>
       </div>
-    </div>
     <div id="imageModal" class="image-modal">
       <span class="close-modal">&times;</span>
       <img class="modal-content" id="modalImage" />
@@ -90,6 +77,11 @@
 
       async function loadHistory() {
         try {
+          const messagesArea = document.getElementById("messagesArea");
+          if (messagesArea) {
+            messagesArea.innerHTML = "";
+          }
+          lastDateKey = null;
           const res = await fetch(
             `/api/v1/chats/rooms/${roomId}/messages?page=0&size=50`,
           );
@@ -134,6 +126,8 @@
 
         stompClient.send("/pub/chats/" + roomId, {}, JSON.stringify(message));
         input.value = "";
+        // Reload history to reflect persisted state (and ensure ordering)
+        loadHistory();
       }
 
       function showMessage(message) {
@@ -279,5 +273,4 @@
       });
       loadHistory().then(connect);
     </script>
-  </body>
-</html>
+</section>

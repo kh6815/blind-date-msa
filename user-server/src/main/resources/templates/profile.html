@@ -1,0 +1,51 @@
+<!doctype html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{thymeleaf/layout/app :: layout(~{::section}, ${false}, 'profile', ${user.id})}">
+<section>
+  <div class="profile-page">
+    <div class="profile-avatar-large" th:style="'background-image: url(' + (${user.profileImageUrl != null ? user.profileImageUrl : 'https://randomuser.me/api/portraits/lego/1.jpg'}) + ')'">
+      <a href="/profile/edit" class="edit-icon"><i class="fas fa-pen" style="font-size: 0.8rem"></i></a>
+    </div>
+    <h2>
+      <span th:text="${user.nickname}">Ethan</span>,
+      <span th:text="${user.age}">32</span>
+    </h2>
+    <div class="online-status-text">● Online</div>
+    <div class="stats-card">
+      <div class="stat-item">
+        <div class="stat-value">85%</div>
+        <div class="stat-label">COMPLETE</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-value"><i class="fas fa-eye"></i> 127</div>
+        <div class="stat-label">VIEWS</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-value"><i class="fas fa-heart"></i> 34</div>
+        <div class="stat-label">MATCHES</div>
+      </div>
+    </div>
+    <div class="menu-list">
+      <div class="menu-header">SETTINGS MENU</div>
+      <a href="/profile/edit" class="menu-item">
+        <span><i class="fas fa-user-edit menu-icon"></i> Edit Profile</span>
+        <i class="fas fa-chevron-right menu-arrow"></i>
+      </a>
+      <div class="menu-item">
+        <span><i class="fas fa-user-cog menu-icon"></i> Account Settings</span>
+        <i class="fas fa-chevron-right menu-arrow"></i>
+      </div>
+      <div class="menu-item">
+        <span><i class="fas fa-lock menu-icon"></i> Privacy</span>
+        <i class="fas fa-chevron-right menu-arrow"></i>
+      </div>
+      <div class="menu-item">
+        <span><i class="fas fa-question-circle menu-icon"></i> Help & Support</span>
+        <i class="fas fa-chevron-right menu-arrow"></i>
+      </div>
+      <a href="/logout" class="menu-item menu-item-logout">
+        <span><i class="fas fa-sign-out-alt menu-icon"></i> Logout</span>
+        <i class="fas fa-chevron-right menu-arrow"></i>
+      </a>
+    </div>
+  </div>
+</section>

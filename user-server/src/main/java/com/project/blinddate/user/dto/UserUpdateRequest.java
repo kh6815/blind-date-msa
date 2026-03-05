@@ -7,6 +7,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.util.List;
+
 @Getter
 @Setter
 @Builder
@@ -43,5 +45,5 @@ public class UserUpdateRequest {
     private String profileImageUrl;
 
     @Schema(description = "삭제할 추가 이미지 URL 리스트")
-    private java.util.List<String> deletedImages;
+    private List<String> deletedImages;
 }

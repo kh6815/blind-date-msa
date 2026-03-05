@@ -7,6 +7,12 @@ import lombok.Builder;
 import lombok.Getter;
 
 import java.time.LocalDate;
+import java.time.Period;
+import java.util.Arrays;
+import java.util.List;
+import java.util.stream.Collectors;
+
+import static java.util.Collections.singletonList;
 
 @Getter
 @Builder
@@ -39,7 +45,7 @@ public class UserResponse {
     private final String profileImageUrl;
 
     @Schema(description = "유저 이미지 리스트", example = "['url1','url2']")
-    private final java.util.List<String> imageUrls;
+    private final List<String> imageUrls;
 
     @Schema(description = "직업", example = "개발자")
     private final String job;
@@ -63,7 +69,7 @@ public class UserResponse {
         if (birthDate == null) {
             return 0;
         }
-        return java.time.Period.between(birthDate, LocalDate.now()).getYears();
+        return Period.between(birthDate, LocalDate.now()).getYears();
     }
 
     public String[] getInterestList() {
@@ -73,17 +79,17 @@ public class UserResponse {
         return interests.split(",");
     }
 
-    public java.util.List<String> getImageUrls() {
+    public List<String> getImageUrls() {
         if (imageUrls != null && !imageUrls.isEmpty()) {
             return imageUrls;
         }
         if (profileImageUrl == null || profileImageUrl.isEmpty()) {
-            return java.util.Collections.singletonList("https://randomuser.me/api/portraits/lego/1.jpg");
+            return singletonList("https://randomuser.me/api/portraits/lego/1.jpg");
         }
-        return java.util.Arrays.stream(profileImageUrl.split(","))
+        return Arrays.stream(profileImageUrl.split(","))
             .map(String::trim)
             .filter(url -> !url.isEmpty())
-            .collect(java.util.stream.Collectors.toList());
+            .collect(Collectors.toList());
     }
 }
 

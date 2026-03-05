@@ -1,5 +1,7 @@
 package com.project.blinddate.user.controller;
 
+import com.project.blinddate.user.domain.User;
+import com.project.blinddate.user.domain.UserImage;
 import com.project.blinddate.user.dto.UserRegisterRequest;
 import com.project.blinddate.user.dto.UserResponse;
 import com.project.blinddate.user.dto.UserSearchCondition;
@@ -8,8 +10,8 @@ import com.project.blinddate.user.service.UserService;
 import com.project.blinddate.user.service.UserImageStorageService;
 import com.project.blinddate.user.security.JwtTokenProvider;
 import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
@@ -22,10 +24,14 @@ import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.time.Duration;
 import java.net.URLEncoder;
+import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
 
 @Controller
 @RequiredArgsConstructor
@@ -48,25 +54,22 @@ public class ViewController {
     @GetMapping("/")
     public String home(
             Model model,
-            HttpSession session,
+            HttpServletRequest request,
             @ModelAttribute UserSearchCondition condition,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size
     ) {
-        UserResponse currentUser = (UserResponse) session.getAttribute("user");
+        UserResponse currentUser = resolveCurrentUser(request);
         if (currentUser == null) {
             return "redirect:/login";
         }
-        
-        // Always refresh current user data to get latest location/info
         UserResponse freshUser = userService.getUser(currentUser.getId());
-        session.setAttribute("user", freshUser);
 
         PageRequest pageable = PageRequest.of(page, size);
         Page<UserResponse> userPage = userService.searchUsers(condition, pageable, freshUser);
 
         // Remove current user from list (in page content)
-        java.util.List<UserResponse> users = new java.util.ArrayList<>(userPage.getContent());
+        List<UserResponse> users = new ArrayList<>(userPage.getContent());
         users.removeIf(u -> u.getId().equals(freshUser.getId()));
 
         model.addAttribute("users", users);
@@ -81,25 +84,23 @@ public class ViewController {
     @GetMapping("/users/list")
     public String getUserList(
             Model model,
-            HttpSession session,
+            HttpServletRequest request,
             @ModelAttribute UserSearchCondition condition,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size
     ) {
-        UserResponse currentUser = (UserResponse) session.getAttribute("user");
+        UserResponse currentUser = resolveCurrentUser(request);
         if (currentUser == null) {
             return "redirect:/login";
         }
 
-        // Always refresh current user data
         UserResponse freshUser = userService.getUser(currentUser.getId());
-        session.setAttribute("user", freshUser);
 
         PageRequest pageable = PageRequest.of(page, size);
         Page<UserResponse> userPage = userService.searchUsers(condition, pageable, freshUser);
 
         // Remove current user from list
-        java.util.List<UserResponse> users = new java.util.ArrayList<>(userPage.getContent());
+        List<UserResponse> users = new ArrayList<>(userPage.getContent());
         users.removeIf(u -> u.getId().equals(freshUser.getId()));
 
         model.addAttribute("users", users);
@@ -112,10 +113,9 @@ public class ViewController {
     }
 
     @PostMapping("/login")
-    public String login(String email, String password, HttpSession session, Model model, HttpServletResponse response) {
+    public String login(String email, String password, Model model, HttpServletResponse response) {
         try {
             UserResponse user = userService.login(email, password);
-            session.setAttribute("user", user);
 
             // JWT Token 생성 및 Redis 저장 (로그인 세션) - Key를 토큰으로 설정 (유효성 검증용)
             String token = jwtTokenProvider.createToken(user.getId());
@@ -157,14 +157,22 @@ public class ViewController {
     }
 
     @GetMapping("/logout")
-    public String logout(HttpSession session) {
-        session.invalidate();
+    public String logout(HttpServletRequest request, HttpServletResponse response) {
+        String token = resolveToken(request);
+        if (token != null) {
+            String tokenKey = USER_TOKEN_KEY_PREFIX + token;
+            redisTemplate.delete(tokenKey);
+        }
+        Cookie cookie = new Cookie("Authorization", "");
+        cookie.setPath("/");
+        cookie.setMaxAge(0);
+        response.addCookie(cookie);
         return "redirect:/login";
     }
 
     @GetMapping("/users/{id}")
-    public String userDetail(@PathVariable Long id, Model model, HttpSession session) {
-        UserResponse currentUser = (UserResponse) session.getAttribute("user");
+    public String userDetail(@PathVariable Long id, Model model, HttpServletRequest request) {
+        UserResponse currentUser = resolveCurrentUser(request);
         if (currentUser == null) {
             return "redirect:/login";
         }
@@ -176,14 +184,12 @@ public class ViewController {
     }
 
     @GetMapping("/profile")
-    public String profile(Model model, HttpSession session) {
-        UserResponse user = (UserResponse) session.getAttribute("user");
+    public String profile(Model model, HttpServletRequest request) {
+        UserResponse user = resolveCurrentUser(request);
         if (user == null) {
             return "redirect:/login";
         }
-        // Refresh user data
         user = userService.getUser(user.getId());
-        session.setAttribute("user", user);
         
         model.addAttribute("user", user);
         model.addAttribute("activeTab", "profile");
@@ -191,12 +197,11 @@ public class ViewController {
     }
 
     @GetMapping("/profile/edit")
-    public String editProfilePage(Model model, HttpSession session) {
-        UserResponse user = (UserResponse) session.getAttribute("user");
+    public String editProfilePage(Model model, HttpServletRequest request) {
+        UserResponse user = resolveCurrentUser(request);
         if (user == null) {
             return "redirect:/login";
         }
-        // Refresh
         user = userService.getUser(user.getId());
         model.addAttribute("user", user);
         return "edit-profile";
@@ -205,13 +210,13 @@ public class ViewController {
     @PostMapping("/profile/edit")
     public String editProfile(
             @ModelAttribute UserUpdateRequest request,
-            @org.springframework.web.bind.annotation.RequestParam(value = "profileImageFile", required = false)
-            org.springframework.web.multipart.MultipartFile profileImageFile,
-            @org.springframework.web.bind.annotation.RequestParam(value = "profileImageFiles", required = false)
-            java.util.List<org.springframework.web.multipart.MultipartFile> profileImageFiles,
-            HttpSession session
+            @RequestParam(value = "profileImageFile", required = false)
+            MultipartFile profileImageFile,
+            @RequestParam(value = "profileImageFiles", required = false)
+            List<MultipartFile> profileImageFiles,
+            HttpServletRequest httpRequest
     ) {
-        UserResponse user = (UserResponse) session.getAttribute("user");
+        UserResponse user = resolveCurrentUser(httpRequest);
         if (user == null) {
             return "redirect:/login";
         }
@@ -227,13 +232,13 @@ public class ViewController {
         }
         // 다중 이미지 업로드 처리
         if (profileImageFiles != null && !profileImageFiles.isEmpty()) {
-            for (org.springframework.web.multipart.MultipartFile file : profileImageFiles) {
+            for (MultipartFile file : profileImageFiles) {
                 if (file != null && !file.isEmpty()) {
                     String url = userImageStorageService.uploadProfileImage(user.getId(), file);
                     if (url != null) {
                         // UserImage 엔티티 저장
-                        com.project.blinddate.user.domain.UserImage userImage = com.project.blinddate.user.domain.UserImage.builder()
-                            .user(com.project.blinddate.user.domain.User.builder().id(user.getId()).build())
+                        UserImage userImage = UserImage.builder()
+                            .user(User.builder().id(user.getId()).build())
                             .imageUrl(url)
                             .build();
                         userImageStorageService.saveUserImage(userImage);
@@ -242,7 +247,50 @@ public class ViewController {
             }
         }
         UserResponse updatedUser = userService.updateProfile(user.getId(), request);
-        session.setAttribute("user", updatedUser);
         return "redirect:/profile";
+    }
+
+    private UserResponse resolveCurrentUser(HttpServletRequest request) {
+        String token = resolveToken(request);
+        if (token == null || !jwtTokenProvider.validateToken(token)) {
+            return null;
+        }
+        String tokenKey = USER_TOKEN_KEY_PREFIX + token;
+        String userIdStr = redisTemplate.opsForValue().get(tokenKey);
+        if (userIdStr == null) {
+            return null;
+        }
+        try {
+            Long tokenUserId = jwtTokenProvider.getUserId(token);
+            Long redisUserId = Long.valueOf(userIdStr);
+            if (!tokenUserId.equals(redisUserId)) {
+                return null;
+            }
+            return userService.getUser(tokenUserId);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    private String resolveToken(HttpServletRequest request) {
+        String bearerToken = request.getHeader("Authorization");
+        if (bearerToken != null && bearerToken.startsWith("Bearer ")) {
+            return bearerToken.substring(7);
+        }
+        if (request.getCookies() != null) {
+            for (Cookie cookie : request.getCookies()) {
+                if ("Authorization".equals(cookie.getName())) {
+                    String value = cookie.getValue();
+                    try {
+                        value = URLDecoder.decode(value, StandardCharsets.UTF_8);
+                        if (value.startsWith("Bearer ")) {
+                            return value.substring(7);
+                        }
+                    } catch (Exception ignored) {}
+                    return value;
+                }
+            }
+        }
+        return null;
     }
 }

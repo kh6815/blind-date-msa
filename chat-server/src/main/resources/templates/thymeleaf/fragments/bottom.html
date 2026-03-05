@@ -1,0 +1,20 @@
+<th:block xmlns:th="http://www.thymeleaf.org" th:fragment="bottomNav(active)">
+<nav class="bottom-nav">
+  <a th:href="${@environment.getProperty('external.user-server.url')}"
+     class="nav-item"
+     th:classappend="${active =='home' ? ' active' : ''}">
+    <i class="fas fa-home"></i>
+  </a>
+  <a href="/chats" class="nav-item" th:classappend="${active =='chat' ? ' active' : ''}">
+    <i class="fas fa-comment-alt"></i>
+  </a>
+  <a href="#" class="nav-item" th:classappend="${active == 'like' ? ' active' : ''}">
+    <i class="fas fa-heart"></i>
+  </a>
+  <a th:href="${@environment.getProperty('external.user-server.url')} + '/profile'"
+     class="nav-item"
+     th:classappend="${active =='profile' ? ' active' : ''}">
+    <i class="fas fa-user"></i>
+  </a>
+</nav>
+</th:block>
