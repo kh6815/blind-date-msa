@@ -37,7 +37,7 @@ public class UserActivityAspect {
             ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
             if (attributes != null) {
                 HttpServletRequest request = attributes.getRequest();
-                String token = resolveToken(request);
+                String token = jwtTokenProvider.resolveToken(request);
 
                 if (token != null && jwtTokenProvider.validateToken(token)) {
                     Long userId = jwtTokenProvider.getUserId(token);
@@ -52,30 +52,5 @@ public class UserActivityAspect {
         }
     }
 
-    private String resolveToken(HttpServletRequest request) {
-        // 1. Header 확인
-        String bearerToken = request.getHeader("Authorization");
-        if (bearerToken != null && bearerToken.startsWith("Bearer ")) {
-            return bearerToken.substring(7);
-        }
-
-        // 2. Cookie 확인
-        if (request.getCookies() != null) {
-            for (Cookie cookie : request.getCookies()) {
-                if ("Authorization".equals(cookie.getName())) {
-                    String value = cookie.getValue();
-                    try {
-                        value = URLDecoder.decode(value, StandardCharsets.UTF_8);
-                        if (value.startsWith("Bearer ")) {
-                            return value.substring(7);
-                        }
-                    } catch (Exception e) {
-                        log.warn("Failed to decode cookie token: {}", e.getMessage());
-                    }
-                    return value;
-                }
-            }
-        }
-        return null;
-    }
+    // 토큰 해석은 JwtTokenProvider의 공통 구현을 사용합니다.
 }

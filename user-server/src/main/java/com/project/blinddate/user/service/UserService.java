@@ -41,7 +41,7 @@ public class UserService {
              throw new IllegalArgumentException("이메일 또는 비밀번호가 올바르지 않습니다.");
         }
 
-        return fixProfileImageUrl(userMapper.toResponse(user));
+        return userMapper.toResponse(user);
     }
 
     @Transactional
@@ -54,7 +54,7 @@ public class UserService {
         // TODO: 비밀번호 해시 처리 (PasswordEncoder 연동 예정)
 
         User saved = userRepository.save(user);
-        return fixProfileImageUrl(userMapper.toResponse(saved));
+        return userMapper.toResponse(saved);
     }
 
     @Transactional(readOnly = true)
@@ -81,14 +81,13 @@ public class UserService {
             .longitude(user.getLongitude())
             .imageUrls(imageUrls)
             .build();
-        return fixProfileImageUrl(response);
+        return response;
     }
 
     @Transactional(readOnly = true)
     public Page<UserResponse> searchUsers(UserSearchCondition condition, Pageable pageable) {
         return userRepository.searchUsers(condition, pageable)
-                .map(userMapper::toResponse)
-                .map(this::fixProfileImageUrl);
+                .map(userMapper::toResponse);
     }
 
     @Transactional(readOnly = true)
@@ -104,7 +103,6 @@ public class UserService {
         List<UserResponse> sortedUsers = userPage.getContent().stream()
                 .map(user -> {
                     UserResponse response = userMapper.toResponse(user);
-                    response = fixProfileImageUrl(response);
                     if (user.getLatitude() != null && user.getLongitude() != null) {
                         double dist = calculateDistance(
                                 currentUser.getLatitude(), currentUser.getLongitude(),
@@ -166,7 +164,6 @@ public class UserService {
         return userRepository.searchRecommendUsers(gender, mbti, interests, limit)
                 .stream()
                 .map(userMapper::toResponse)
-                .map(this::fixProfileImageUrl)
                 .collect(Collectors.toList());
     }
 
@@ -213,9 +210,6 @@ public class UserService {
                 .distance(baseResponse.getDistance())
                 .build();
         
-        // Fix URLs (localhost)
-        response = fixProfileImageUrl(response);
-        
         // Publish event to notify chat-server
         userKafkaProducer.sendUserInfoUpdated(
             response.getId(), 
@@ -224,45 +218,6 @@ public class UserService {
         );
         
         return response;
-    }
-
-    private UserResponse fixProfileImageUrl(UserResponse response) {
-        if (response == null) return null;
-        
-        String fixedProfileUrl = response.getProfileImageUrl();
-        if (fixedProfileUrl != null && fixedProfileUrl.contains("http://minio:9000")) {
-            fixedProfileUrl = fixedProfileUrl.replace("http://minio:9000", "http://localhost:9000");
-        }
-        
-        List<String> fixedImageUrls = null;
-        if (response.getImageUrls() != null) {
-            fixedImageUrls = response.getImageUrls().stream()
-                    .map(url -> {
-                        if (url != null && url.contains("http://minio:9000")) {
-                            return url.replace("http://minio:9000", "http://localhost:9000");
-                        }
-                        return url;
-                    })
-                    .collect(Collectors.toList());
-        }
-
-        return UserResponse.builder()
-                .id(response.getId())
-                .email(response.getEmail())
-                .nickname(response.getNickname())
-                .gender(response.getGender())
-                .birthDate(response.getBirthDate())
-                .mbti(response.getMbti())
-                .interests(response.getInterests())
-                .profileImageUrl(fixedProfileUrl)
-                .imageUrls(fixedImageUrls)
-                .job(response.getJob())
-                .description(response.getDescription())
-                .location(response.getLocation())
-                .latitude(response.getLatitude())
-                .longitude(response.getLongitude())
-                .distance(response.getDistance())
-                .build();
     }
 
     private List<String> parseInterests(String interestsCsv) {

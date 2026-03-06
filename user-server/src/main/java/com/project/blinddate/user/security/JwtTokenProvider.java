@@ -4,9 +4,12 @@ import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
+import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.security.Key;
 import java.util.Date;
@@ -51,5 +54,30 @@ public class JwtTokenProvider {
         } catch (Exception e) {
             return false;
         }
+    }
+
+    public String resolveToken(String authorizationHeader, HttpServletRequest request) {
+        if (authorizationHeader != null && authorizationHeader.startsWith("Bearer ")) {
+            return authorizationHeader.substring(7);
+        }
+        if (request != null && request.getCookies() != null) {
+            for (Cookie cookie : request.getCookies()) {
+                if ("Authorization".equals(cookie.getName())) {
+                    String value = cookie.getValue();
+                    try {
+                        value = URLDecoder.decode(value, StandardCharsets.UTF_8);
+                        if (value.startsWith("Bearer ")) {
+                            return value.substring(7);
+                        }
+                    } catch (Exception ignored) {}
+                    return value;
+                }
+            }
+        }
+        return null;
+    }
+
+    public String resolveToken(HttpServletRequest request) {
+        return resolveToken(request != null ? request.getHeader("Authorization") : null, request);
     }
 }

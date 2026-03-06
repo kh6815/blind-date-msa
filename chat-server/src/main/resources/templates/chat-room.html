@@ -4,7 +4,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/sockjs-client/1.6.1/sockjs.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
       <header class="chat-room-header">
-        <a th:href="@{'/chats?userId=' + ${userId}}" class="back-btn"
+        <a th:href="@{'/chats'}" class="back-btn"
           ><i class="fas fa-chevron-left"></i
         ></a>
         <a th:href="${@environment.getProperty('external.user-server.url')} + '/users/' + ${targetUserId}"
@@ -88,6 +88,22 @@
           const body = await res.json();
           if (!body.data) return;
           body.data.forEach(showMessage);
+          const area = document.getElementById("messagesArea");
+          if (area) {
+            area.scrollTop = area.scrollHeight;
+            const imgs = area.querySelectorAll("img");
+            imgs.forEach((img) => {
+              if (!img.complete) {
+                img.addEventListener(
+                  "load",
+                  () => {
+                    area.scrollTop = area.scrollHeight;
+                  },
+                  { once: true },
+                );
+              }
+            });
+          }
         } catch (e) {
           console.error("history load error", e);
         }
@@ -104,6 +120,7 @@
             console.log("Connected: " + frame);
 
             stompClient.subscribe("/topic/chats/" + roomId, function (message) {
+              console.log("Subscribed: " + message);
               showMessage(JSON.parse(message.body));
             });
           },
@@ -126,8 +143,6 @@
 
         stompClient.send("/pub/chats/" + roomId, {}, JSON.stringify(message));
         input.value = "";
-        // Reload history to reflect persisted state (and ensure ordering)
-        loadHistory();
       }
 
       function showMessage(message) {
@@ -169,11 +184,7 @@
           (message.content && message.content.startsWith("data:image"))
         ) {
           const img = document.createElement("img");
-          let src = message.content;
-          if (src && src.includes("http://minio:9000")) {
-            src = src.replace("http://minio:9000", "http://localhost:9000");
-          }
-          img.src = src;
+          img.src = message.content;
           img.style.maxWidth = "100%";
           img.style.borderRadius = "10px";
           img.style.cursor = "zoom-in";
@@ -271,6 +282,7 @@
         const menu = document.getElementById("menuDropdown");
         menu.style.display = menu.style.display === "none" ? "block" : "none";
       });
+
       loadHistory().then(connect);
     </script>
 </section>

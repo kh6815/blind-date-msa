@@ -17,6 +17,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.http.ResponseCookie;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -44,12 +45,15 @@ public class ViewController {
 
     @Value("${user.presence.key-prefix}")
     private String USER_PRESENCE_KEY_PREFIX;
-    
-    @Value("${user.auth.key-prefix:user:token:}")
+
+    @Value("${user.auth.key-prefix}")
     private String USER_TOKEN_KEY_PREFIX;
-    
+
     private static final Duration USER_ACTIVITY_TTL = Duration.ofMinutes(30);
     private static final Duration USER_TOKEN_TTL = Duration.ofHours(24);
+
+    @Value("${web.cookie.domain}")
+    private String COOKIE_DOMAIN;
 
     @GetMapping("/")
     public String home(
@@ -113,7 +117,7 @@ public class ViewController {
     }
 
     @PostMapping("/login")
-    public String login(String email, String password, Model model, HttpServletResponse response) {
+    public String login(String email, String password, Model model, HttpServletRequest httpRequest, HttpServletResponse response) {
         try {
             UserResponse user = userService.login(email, password);
 
@@ -121,7 +125,7 @@ public class ViewController {
             String token = jwtTokenProvider.createToken(user.getId());
             String tokenKey = USER_TOKEN_KEY_PREFIX + token;
             redisTemplate.opsForValue().set(tokenKey, String.valueOf(user.getId()), USER_TOKEN_TTL);
-            
+
             // 온라인 상태 저장 (활동 감지용) - Key를 userId로 설정 (조회 편의성)
             String presenceKey = USER_PRESENCE_KEY_PREFIX + user.getId();
             redisTemplate.opsForValue().set(presenceKey, "online", USER_ACTIVITY_TTL);
@@ -130,11 +134,12 @@ public class ViewController {
             // Bearer prefix는 쿠키 값에 포함하거나, 서버에서 읽을 때 처리. 여기서는 포함.
             String cookieValue = "Bearer " + token;
             cookieValue = URLEncoder.encode(cookieValue, StandardCharsets.UTF_8);
-            
+
             Cookie cookie = new Cookie("Authorization", cookieValue);
             cookie.setHttpOnly(true);
             cookie.setPath("/");
             cookie.setMaxAge(24 * 60 * 60); // 1 day
+            cookie.setDomain(COOKIE_DOMAIN);
             response.addCookie(cookie);
 
             return "redirect:/";
@@ -158,7 +163,7 @@ public class ViewController {
 
     @GetMapping("/logout")
     public String logout(HttpServletRequest request, HttpServletResponse response) {
-        String token = resolveToken(request);
+        String token = jwtTokenProvider.resolveToken(request);
         if (token != null) {
             String tokenKey = USER_TOKEN_KEY_PREFIX + token;
             redisTemplate.delete(tokenKey);
@@ -190,7 +195,7 @@ public class ViewController {
             return "redirect:/login";
         }
         user = userService.getUser(user.getId());
-        
+
         model.addAttribute("user", user);
         model.addAttribute("activeTab", "profile");
         return "profile";
@@ -238,9 +243,9 @@ public class ViewController {
                     if (url != null) {
                         // UserImage 엔티티 저장
                         UserImage userImage = UserImage.builder()
-                            .user(User.builder().id(user.getId()).build())
-                            .imageUrl(url)
-                            .build();
+                                .user(User.builder().id(user.getId()).build())
+                                .imageUrl(url)
+                                .build();
                         userImageStorageService.saveUserImage(userImage);
                     }
                 }
@@ -251,7 +256,7 @@ public class ViewController {
     }
 
     private UserResponse resolveCurrentUser(HttpServletRequest request) {
-        String token = resolveToken(request);
+        String token = jwtTokenProvider.resolveToken(request);
         if (token == null || !jwtTokenProvider.validateToken(token)) {
             return null;
         }
@@ -270,27 +275,5 @@ public class ViewController {
         } catch (Exception e) {
             return null;
         }
-    }
-
-    private String resolveToken(HttpServletRequest request) {
-        String bearerToken = request.getHeader("Authorization");
-        if (bearerToken != null && bearerToken.startsWith("Bearer ")) {
-            return bearerToken.substring(7);
-        }
-        if (request.getCookies() != null) {
-            for (Cookie cookie : request.getCookies()) {
-                if ("Authorization".equals(cookie.getName())) {
-                    String value = cookie.getValue();
-                    try {
-                        value = URLDecoder.decode(value, StandardCharsets.UTF_8);
-                        if (value.startsWith("Bearer ")) {
-                            return value.substring(7);
-                        }
-                    } catch (Exception ignored) {}
-                    return value;
-                }
-            }
-        }
-        return null;
     }
 }

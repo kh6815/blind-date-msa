@@ -2,8 +2,10 @@ package com.project.blinddate.chat.controller;
 
 import com.project.blinddate.chat.dto.ChatRoomCreateRequest;
 import com.project.blinddate.chat.dto.ChatRoomResponse;
+import com.project.blinddate.chat.dto.ChatUserIdRequest;
 import com.project.blinddate.chat.service.ChatService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -13,6 +15,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 
 import java.util.Arrays;
 
+@Slf4j
 @Controller
 @RequiredArgsConstructor
 public class ViewController {
@@ -20,10 +23,12 @@ public class ViewController {
     private final ChatService chatService;
 
     @GetMapping("/chats")
-    public String chatList(@RequestParam Long userId,
-                           @RequestParam(defaultValue = "0") int page,
+    public String chatList(@RequestParam(defaultValue = "0") int page,
                            @RequestParam(defaultValue = "20") int size,
+                           ChatUserIdRequest chatUserIdRequest,
                            Model model) {
+        Long userId = chatUserIdRequest.getCurrentUserId();
+
         var pageable = PageRequest.of(page, size);
         var roomPage = chatService.getRoomsByUser(userId, pageable);
 
@@ -36,16 +41,17 @@ public class ViewController {
     }
 
     @GetMapping("/chats/room/{roomId}")
-    public String chatRoom(@PathVariable String roomId, 
-                          @RequestParam(defaultValue = "1") Long userId, 
-                          Model model) {
+    public String chatRoom(@PathVariable String roomId,
+                           ChatUserIdRequest chatUserIdRequest,
+                           Model model) {
+        Long userId = chatUserIdRequest.getCurrentUserId();
         ChatRoomResponse room = chatService.getRoom(roomId, userId);
-        
+
         Long targetUserId = room.getParticipantUserIds().stream()
                 .filter(id -> !id.equals(userId))
                 .findFirst()
                 .orElse(null);
-                
+
         model.addAttribute("roomId", roomId);
         model.addAttribute("userId", userId);
         model.addAttribute("targetUserId", targetUserId);
@@ -56,12 +62,12 @@ public class ViewController {
     }
 
     @GetMapping("/chats/room/create")
-    public String createRoom(@RequestParam Long targetUserId, @RequestParam Long myId) {
-        ChatRoomCreateRequest request = ChatRoomCreateRequest.builder()
+    public String createRoom(@RequestParam Long targetUserId, ChatUserIdRequest chatUserIdRequest) {
+        Long myId = chatUserIdRequest.getCurrentUserId();
+        ChatRoomCreateRequest dto = ChatRoomCreateRequest.builder()
                 .participantUserIds(Arrays.asList(myId, targetUserId))
                 .build();
-        ChatRoomResponse room = chatService.createRoom(request);
+        ChatRoomResponse room = chatService.createRoom(dto);
         return "redirect:/chats/room/" + room.getId();
-//        return "redirect:/chats/room/" + room.getId() + "?userId=" + myId;
     }
 }

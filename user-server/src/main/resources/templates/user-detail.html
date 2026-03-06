@@ -146,7 +146,7 @@
             <a href="/" class="btn-action btn-pass">
               <i class="fas fa-times"></i> Pass
             </a>
-            <a th:href="${@environment.getProperty('external.chat-server.url') + '/chats/room/create?targetUserId=' + user.id + '&myId=' + currentUser.id}"
+            <a th:href="${@environment.getProperty('external.chat-server.url') + '/chats/room/create?targetUserId=' + ${user.id}}"
               class="btn-action btn-chat"
             >
               <i class="fas fa-comment"></i> Chat
