@@ -103,10 +103,10 @@
               <span th:text="${user.nickname}">Name</span>,
               <span th:text="${user.age}">25</span>
             </h1>
-            <div class="tag tag-online">
-              <i class="fas fa-circle online-dot"></i>
-              Online
-            </div>
+              <div class="tag" th:classappend="${user.isOnline} ? 'tag-online' : 'tag-offline'">
+                  <i class="fas fa-circle online-dot"></i>
+                  <span th:text="${user.isOnline} ? 'Online' : 'Offline'"></span>
+              </div>
           </div>
 
           <p class="location-text">

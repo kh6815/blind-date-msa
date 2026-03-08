@@ -10,10 +10,12 @@ import com.project.blinddate.user.mapper.UserMapper;
 import com.project.blinddate.user.repository.UserImageRepository;
 import com.project.blinddate.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -30,6 +32,10 @@ public class UserService {
     private final UserMapper userMapper;
     private final UserImageRepository userImageRepository;
     private final UserKafkaProducer userKafkaProducer;
+    private final StringRedisTemplate redisTemplate;
+
+    @Value("${user.presence.key-prefix}")
+    private String USER_PRESENCE_KEY_PREFIX;
 
     @Transactional
     public UserResponse login(String email, String password) {
@@ -65,7 +71,7 @@ public class UserService {
             .stream()
             .map(UserImage::getImageUrl)
             .toList();
-        UserResponse response = UserResponse.builder()
+        return UserResponse.builder()
             .id(user.getId())
             .email(user.getEmail())
             .nickname(user.getNickname())
@@ -80,14 +86,18 @@ public class UserService {
             .latitude(user.getLatitude())
             .longitude(user.getLongitude())
             .imageUrls(imageUrls)
+            .isOnline(isUserOnline(user.getId()))
             .build();
-        return response;
     }
 
     @Transactional(readOnly = true)
     public Page<UserResponse> searchUsers(UserSearchCondition condition, Pageable pageable) {
         return userRepository.searchUsers(condition, pageable)
-                .map(userMapper::toResponse);
+                .map(user -> {
+                    UserResponse response = userMapper.toResponse(user);
+                    response.setIsOnline(isUserOnline(response.getId()));
+                    return response;
+                });
     }
 
     @Transactional(readOnly = true)
@@ -103,6 +113,8 @@ public class UserService {
         List<UserResponse> sortedUsers = userPage.getContent().stream()
                 .map(user -> {
                     UserResponse response = userMapper.toResponse(user);
+                    response.setIsOnline(isUserOnline(response.getId()));
+
                     if (user.getLatitude() != null && user.getLongitude() != null) {
                         double dist = calculateDistance(
                                 currentUser.getLatitude(), currentUser.getLongitude(),
@@ -124,6 +136,7 @@ public class UserService {
                                 .latitude(response.getLatitude())
                                 .longitude(response.getLongitude())
                                 .distance(dist)
+                                .isOnline(isUserOnline(response.getId()))
                                 .build();
                     }
                     return response;
@@ -158,6 +171,12 @@ public class UserService {
         return dist;
     }
 
+    private boolean isUserOnline(Long userId) {
+        if (userId == null) return false;
+        String key = USER_PRESENCE_KEY_PREFIX + userId;
+        return redisTemplate.hasKey(key);
+    }
+
     @Transactional(readOnly = true)
     public List<UserResponse> recommendUsers(String gender, String mbti, String interestsCsv, int limit) {
         List<String> interests = parseInterests(interestsCsv);
@@ -187,7 +206,7 @@ public class UserService {
         UserResponse baseResponse = userMapper.toResponse(user);
 
         // Refresh images from DB to ensure deleted images are gone
-        java.util.List<String> imageUrls = userImageRepository.findByUser(user)
+        List<String> imageUrls = userImageRepository.findByUser(user)
                 .stream()
                 .map(UserImage::getImageUrl)
                 .toList();

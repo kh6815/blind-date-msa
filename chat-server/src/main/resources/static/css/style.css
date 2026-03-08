@@ -965,6 +965,15 @@ header {
   color: #4cd137;
 }
 
+/* Online Status Styles */
+.online-status-small.online {
+    color: #4cd137;
+}
+
+.online-status-small.offline {
+    color: #888;
+}
+
 .header-menu-container {
   margin-left: auto;
   position: relative;

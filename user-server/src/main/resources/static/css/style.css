@@ -256,7 +256,6 @@ header {
   position: absolute;
   top: 10px;
   left: 10px;
-  background-color: #4cd137;
   color: white;
   padding: 3px 8px;
   border-radius: 12px;
@@ -266,11 +265,31 @@ header {
   gap: 5px;
 }
 
+/* Online Status Styles */
+.status-badge.online {
+    background: rgba(76, 209, 55, 0.1);
+    color: #4cd137;
+}
+
+.status-badge.offline {
+    background: rgba(136, 136, 136, 0.1);
+    color: #888;
+}
+
 .status-dot {
   width: 6px;
   height: 6px;
   background: white;
   border-radius: 50%;
+}
+
+/* Online Status Styles */
+.status-dot.online {
+    background: #4cd137;
+}
+
+.status-dot.offline {
+    background: #888;
 }
 
 .distance-badge {
@@ -839,6 +858,14 @@ header {
   display: flex;
   align-items: center;
   gap: 5px;
+}
+
+.tag-offline {
+    background: rgba(136, 136, 136, 0.1);
+    color: #888;
+    display: flex;
+    align-items: center;
+    gap: 5px;
 }
 
 .online-dot {

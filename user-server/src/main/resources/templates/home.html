@@ -5,9 +5,9 @@
     <th:block th:fragment="userItems">
       <div th:each="user : ${users}" class="profile-card-home" th:onclick="'location.href=\'/users/' + ${user.id} + '\''">
         <div class="profile-image-home" th:style="'background-image: url(' + (${user.profileImageUrl != null ? user.profileImageUrl : 'https://randomuser.me/api/portraits/lego/1.jpg'}) + ')'"></div>
-        <div class="status-badge">
-          <div class="status-dot"></div>
-          온라인
+        <div class="status-badge" th:classappend="${user.isOnline} ? 'online' : 'offline'">
+          <div class="status-dot" th:classappend="${user.isOnline} ? 'online' : 'offline'"></div>
+          <span th:text="${user.isOnline} ? 'Online' : 'Offline'"></span>
         </div>
         <div class="distance-badge" th:if="${user.distance != null}">
           <i class="fas fa-map-marker-alt"></i>

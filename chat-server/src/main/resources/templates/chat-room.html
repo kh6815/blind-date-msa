@@ -18,8 +18,8 @@
             <div
                     id="onlineStatus"
                     class="online-status-small"
+                    th:classappend="${isTargetUserOnline} ? 'online' : 'offline'"
                     th:text="${isTargetUserOnline} ? '● Online' : '● Offline'"
-                    th:style="${isTargetUserOnline} ? 'color: #4cd137;' : 'color: #888;'"
             >
                 ● Offline
             </div>

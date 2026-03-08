@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Builder;
 import lombok.Getter;
+import lombok.Setter;
 
 import java.time.LocalDate;
 import java.time.Period;
@@ -15,6 +16,7 @@ import java.util.stream.Collectors;
 import static java.util.Collections.singletonList;
 
 @Getter
+@Setter
 @Builder
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 @Schema(description = "유저 기본 응답 DTO")
@@ -64,6 +66,9 @@ public class UserResponse {
 
     @Schema(description = "거리(km)", example = "1.5")
     private final Double distance;
+
+    @Schema(description = "온라인 여부", example = "true")
+    private Boolean isOnline;
 
     public int getAge() {
         if (birthDate == null) {
