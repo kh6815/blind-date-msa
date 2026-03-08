@@ -1,20 +1,13 @@
 <!doctype html>
-<html xmlns:th="http://www.thymeleaf.org">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>GRIZZLY - Sign Up</title>
-    <link rel="stylesheet" href="/css/style.css" />
-    <link
-      rel="stylesheet"
-      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
-    />
-  </head>
-  <body>
-    <div class="container">
-      <div class="content-scrollable signup-container">
-        <div class="header-title">회원가입</div>
-
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{thymeleaf/layout/custom-header-layout :: layout(~{::header}, ~{::content}, '회원가입')}">
+<header>
+    <a href="/login" class="back-btn">
+        <i class="fas fa-arrow-left"></i>
+    </a>
+    <div class="header-title">회원가입</div>
+</header>
+<th:block th:fragment="content">
+    <div class="content-scrollable signup-container">
         <form action="/signup" method="post" th:object="${userRegisterRequest}">
           <div class="form-group">
             <label class="form-label">이메일</label>
@@ -105,7 +98,5 @@
         <div class="links">
           <a href="/login">이미 계정이 있으신가요?</a>
         </div>
-      </div>
     </div>
-  </body>
-</html>
+</th:block>

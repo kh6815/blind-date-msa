@@ -1,23 +1,21 @@
 package com.project.blinddate.chat.service;
 
-import com.project.blinddate.common.dto.ChatMessageEvent;
+import com.project.blinddate.chat.dto.ChatMessageEvent;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class ChatKafkaProducer {
 
     private final KafkaTemplate<String, ChatMessageEvent> kafkaTemplate;
+    private static final String TOPIC = "chat-message-save";
 
-    @Value("${chat.kafka.topics.message}")
-    private String messageTopic;
-
-    public void publishChatMessage(ChatMessageEvent event) {
-        kafkaTemplate.send(messageTopic, event.getRoomId(), event);
+    public void send(ChatMessageEvent event) {
+        log.info("Sending message to Kafka topic: {}, payload: {}", TOPIC, event);
+        kafkaTemplate.send(TOPIC, event);
     }
 }
-
-

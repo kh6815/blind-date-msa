@@ -1,5 +1,5 @@
 <!doctype html>
-<html xmlns:th="http://www.thymeleaf.org" th:replace="~{thymeleaf/layout/app :: layout(~{::section}, 'chat')}">
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{thymeleaf/layout/common-layout :: layout(~{::section}, 'chat')}">
 <section>
   <div th:if="${#lists.isEmpty(rooms)}" class="empty-state">
     <i class="fas fa-comments empty-icon"></i>

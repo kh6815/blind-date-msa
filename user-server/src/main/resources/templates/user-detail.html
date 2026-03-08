@@ -1,10 +1,13 @@
 <!doctype html>
-<html xmlns:th="http://www.thymeleaf.org" th:replace="~{thymeleaf/layout/app :: layout(~{::section}, ${false}, 'home')}">
-<section>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{thymeleaf/layout/custom-header-layout :: layout(~{::header}, ~{::content}, '')}">
+<header>
+    <a href="/" class="back-btn">
+        <i class="fas fa-arrow-left"></i>
+    </a>
+</header>
+<th:block th:fragment="content">
+    <div class="content-scrollable">
         <div class="profile-header">
-          <a href="/" class="back-button">
-            <i class="fas fa-arrow-left"></i>
-          </a>
           <div id="image-slider" class="slider-container">
             <!-- Main Profile Image -->
             <img
@@ -146,20 +149,17 @@
             <a href="/" class="btn-action btn-pass">
               <i class="fas fa-times"></i> Pass
             </a>
-            <a th:href="${@environment.getProperty('external.chat-server.url') + '/chats/room/create?targetUserId=' + ${user.id}}"
+            <a th:href="${@environment.getProperty('external.chat-server.url') + '/chats/room/create?targetUserId=' + user.id}"
               class="btn-action btn-chat"
             >
               <i class="fas fa-comment"></i> Chat
             </a>
           </div>
         </div>
-    <div id="imageModal" class="image-modal">
-      <span class="close-modal">&times;</span>
-      <img class="modal-content" id="modalImage" />
+        <!-- Image Modal -->
+        <div id="imageModal" class="image-modal">
+          <span class="close-modal">&times;</span>
+          <img class="modal-content" id="modalImage"/>
+        </div>
     </div>
-    <!-- Image Modal -->
-    <div id="imageModal" class="image-modal">
-      <span class="close-modal">&times;</span>
-      <img class="modal-content" id="modalImage" />
-    </div>
-</section>
+</th:block>

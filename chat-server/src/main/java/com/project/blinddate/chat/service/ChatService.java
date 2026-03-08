@@ -3,6 +3,7 @@ package com.project.blinddate.chat.service;
 import com.project.blinddate.chat.domain.ChatMessage;
 import com.project.blinddate.chat.domain.ChatRoom;
 import com.project.blinddate.chat.domain.MessageType;
+import com.project.blinddate.chat.dto.ChatMessageEvent;
 import com.project.blinddate.chat.dto.ChatMessageResponse;
 import com.project.blinddate.chat.dto.ChatRoomCreateRequest;
 import com.project.blinddate.chat.dto.ChatRoomResponse;
@@ -10,7 +11,6 @@ import com.project.blinddate.chat.dto.ChatUserInfoResponse;
 import com.project.blinddate.chat.mapper.ChatMapper;
 import com.project.blinddate.chat.repository.ChatMessageRepository;
 import com.project.blinddate.chat.repository.ChatRoomRepository;
-import com.project.blinddate.common.dto.ChatMessageEvent;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
@@ -35,12 +35,38 @@ public class ChatService {
     private final ChatMessageRepository chatMessageRepository;
     private final ChatMapper chatMapper;
     private final UserInfoCacheService userInfoCacheService;
-    private final ChatKafkaProducer chatKafkaProducer;
 
     @Value("${user.presence.key-prefix}")
     private String USER_PRESENCE_KEY_PREFIX;
     
     private final StringRedisTemplate redisTemplate;
+
+    @Transactional
+    public void saveMessage(ChatMessageEvent event) {
+        // 채팅방 존재 확인
+        ChatRoom room = chatRoomRepository.findById(event.getRoomId())
+                .orElseThrow(() -> new IllegalArgumentException("채팅방을 찾을 수 없습니다."));
+
+        ChatMessage message = ChatMessage.builder()
+                .id(event.getId())
+                .roomId(event.getRoomId())
+                .senderUserId(event.getSenderUserId())
+                .content(event.getContent())
+                .type(event.getType())
+                .sentAt(event.getSentAt())
+                .build();
+
+        chatMessageRepository.save(message);
+
+        // 채팅방 마지막 메시지 시간 업데이트
+        ChatRoom updatedRoom = ChatRoom.builder()
+                .id(room.getId())
+                .participantUserIds(room.getParticipantUserIds())
+                .createdAt(room.getCreatedAt())
+                .lastMessageAt(event.getSentAt())
+                .build();
+        chatRoomRepository.save(updatedRoom);
+    }
 
     @Transactional
     public ChatRoomResponse createRoom(ChatRoomCreateRequest request) {
@@ -112,16 +138,6 @@ public class ChatService {
                 .lastMessageAt(now)
                 .build();
         chatRoomRepository.save(updatedRoom);
-
-        ChatMessageEvent event = ChatMessageEvent.builder()
-                .messageId(saved.getId())
-                .roomId(saved.getRoomId())
-                .senderUserId(saved.getSenderUserId())
-                .content(saved.getContent())
-                .type(saved.getType() != null ? saved.getType().name() : MessageType.TEXT.name())
-                .sentAt(saved.getSentAt())
-                .build();
-        chatKafkaProducer.publishChatMessage(event);
 
         return chatMapper.toMessageResponse(saved);
     }

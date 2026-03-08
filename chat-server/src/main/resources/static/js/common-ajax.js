@@ -39,6 +39,25 @@ function fnApiPost(url, isAsync, headers, data, dataType, call_func) {
     });
 }
 
+function fnApiUpload(url, headers, formData, call_func) {
+    $.ajax({
+        url : url,
+        type : 'post',
+        headers : headers ? headers : {},
+        processData: false,
+        contentType: false,
+        data : formData,
+        xhrFields: { withCredentials: true },
+        success : function(res) {
+            call_func(res);
+            // fnResCheck("json", res, call_func)
+        },
+        error: function(error) {
+            fnErrorCheck("json", error)
+        }
+    });
+}
+
 function fnResCheck(dataType, res, callback_func) {
     // 응답값이 html일 경우
     if(dataType === 'html'){
@@ -61,7 +80,9 @@ function fnResCheck(dataType, res, callback_func) {
     }
 
     // 응답값이 json일 경우
-    if (res.header && res.header.resultCode === 200) {
+    // if (res.header && res.header.resultCode === 200) {
+    console.log(res);
+    if(res.status === 200) {
         callback_func(res);
     } else {
         // const msgData = res.header.resultMessage ? res.header.resultMessage : '영어로 바꾸시오. 유효하지 않은 호출입니다. '

@@ -1,17 +1,10 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GRIZZLY - Login</title>
-    <link rel="stylesheet" href="/css/style.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-</head>
-<body>
-    <div class="container">
-        <div class="content-scrollable login-container">
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{thymeleaf/layout/custom-header-layout :: layout(~{::header}, ~{::content}, '로그인')}">
+<header></header>
+<th:block th:fragment="content">
+    <div class="content-scrollable login-container">
         <div class="logo-large">GRIZZLY</div>
-        
+
         <div th:if="${error}" class="error-message" th:text="${error}"></div>
 
         <form action="/login" method="post">
@@ -28,5 +21,4 @@
             <a href="/signup">회원가입하기</a>
         </div>
     </div>
-</body>
-</html>
+</th:block>

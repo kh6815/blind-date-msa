@@ -1,6 +1,6 @@
 package com.project.blinddate.chat.config;
 
-import com.project.blinddate.common.dto.ChatMessageEvent;
+import com.project.blinddate.chat.dto.ChatMessageEvent;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.serialization.StringDeserializer;
@@ -19,48 +19,12 @@ import java.util.Map;
 @Configuration
 /**
  * Kafka 설정 클래스
- * 
+ *
  * Kafka Producer 및 Consumer 설정을 담당합니다.
- * 채팅 메시지 이벤트(ChatMessageEvent)와 일반 문자열(String) 메시지를 처리하기 위한
+ * 일반 문자열(String) 메시지와 채팅 메시지 이벤트(ChatMessageEvent)를 처리하기 위한
  * 팩토리와 템플릿을 빈으로 등록합니다.
  */
 public class KafkaConfig {
-
-    /**
-     * ChatMessageEvent Producer Factory 빈 등록
-     *
-     * 채팅 메시지 이벤트 객체를 Kafka로 발행하기 위한 Producer 설정을 정의합니다.
-     * Key는 String, Value는 ChatMessageEvent 객체(JSON 직렬화)를 사용합니다.
-     *
-     * @param bootstrapServers Kafka 브로커 주소 목록
-     * @return ProducerFactory<String, ChatMessageEvent>
-     */
-    @Bean
-    public ProducerFactory<String, ChatMessageEvent> chatMessageProducerFactory(
-            @Value("${spring.kafka.bootstrap-servers}") String bootstrapServers
-    ) {
-        Map<String, Object> props = new HashMap<>();
-        props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
-        props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
-        props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, JsonSerializer.class);
-        return new DefaultKafkaProducerFactory<>(props);
-    }
-
-    /**
-     * ChatMessageEvent KafkaTemplate 빈 등록
-     *
-     * 실제 코드에서 주입받아 메시지를 전송하는 데 사용되는 템플릿입니다.
-     * chatMessageProducerFactory를 사용하여 생성됩니다.
-     *
-     * @param chatMessageProducerFactory 위에서 정의한 ProducerFactory
-     * @return KafkaTemplate<String, ChatMessageEvent>
-     */
-    @Bean
-    public KafkaTemplate<String, ChatMessageEvent> chatMessageKafkaTemplate(
-            ProducerFactory<String, ChatMessageEvent> chatMessageProducerFactory
-    ) {
-        return new KafkaTemplate<>(chatMessageProducerFactory);
-    }
 
     /**
      * String Producer Factory 빈 등록
@@ -96,6 +60,42 @@ public class KafkaConfig {
             ProducerFactory<String, String> stringProducerFactory
     ) {
         return new KafkaTemplate<>(stringProducerFactory);
+    }
+
+    /**
+     * ChatMessageEvent Producer Factory 빈 등록
+     *
+     * 채팅 메시지 이벤트 객체를 Kafka로 발행하기 위한 Producer 설정을 정의합니다.
+     * Key는 String, Value는 ChatMessageEvent 객체(JSON 직렬화)를 사용합니다.
+     *
+     * @param bootstrapServers Kafka 브로커 주소 목록
+     * @return ProducerFactory<String, ChatMessageEvent>
+     */
+    @Bean
+    public ProducerFactory<String, ChatMessageEvent> chatMessageProducerFactory(
+            @Value("${spring.kafka.bootstrap-servers}") String bootstrapServers
+    ) {
+        Map<String, Object> props = new HashMap<>();
+        props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
+        props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
+        props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, JsonSerializer.class);
+        return new DefaultKafkaProducerFactory<>(props);
+    }
+
+    /**
+     * ChatMessageEvent KafkaTemplate 빈 등록
+     *
+     * 실제 코드에서 주입받아 메시지를 전송하는 데 사용되는 템플릿입니다.
+     * chatMessageProducerFactory를 사용하여 생성됩니다.
+     *
+     * @param chatMessageProducerFactory 위에서 정의한 ProducerFactory
+     * @return KafkaTemplate<String, ChatMessageEvent>
+     */
+    @Bean
+    public KafkaTemplate<String, ChatMessageEvent> chatMessageKafkaTemplate(
+            ProducerFactory<String, ChatMessageEvent> chatMessageProducerFactory
+    ) {
+        return new KafkaTemplate<>(chatMessageProducerFactory);
     }
 
     /**

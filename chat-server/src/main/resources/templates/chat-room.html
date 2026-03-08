@@ -1,288 +1,311 @@
 <!doctype html>
-<html xmlns:th="http://www.thymeleaf.org" th:replace="~{thymeleaf/layout/app2 :: layout(~{::section}, 'chat')}">
-<section>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/sockjs-client/1.6.1/sockjs.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
-      <header class="chat-room-header">
-        <a th:href="@{'/chats'}" class="back-btn"
-          ><i class="fas fa-chevron-left"></i
-        ></a>
-        <a th:href="${@environment.getProperty('external.user-server.url')} + '/users/' + ${targetUserId}"
-          class="chat-room-header-link"
-        >
-          <div
-            class="avatar header-avatar"
-            th:style="'background-image: url(' + (${targetUserImageUrl != null ? targetUserImageUrl : 'https://randomuser.me/api/portraits/lego/1.jpg'}) + ')'"
-          ></div>
-          <div>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{thymeleaf/layout/custom-header-layout :: layout(~{::header}, ~{::content})}">
+<header class="chat-room-header">
+    <a th:href="@{'/chats'}" class="back-btn"
+    ><i class="fas fa-chevron-left"></i
+    ></a>
+    <a th:href="${@environment.getProperty('external.user-server.url')} + '/users/' + ${targetUserId}"
+       class="chat-room-header-link"
+    >
+        <div
+                class="avatar header-avatar"
+                th:style="'background-image: url(' + (${targetUserImageUrl != null ? targetUserImageUrl : 'https://randomuser.me/api/portraits/lego/1.jpg'}) + ')'"
+        ></div>
+        <div>
             <div class="header-nickname" th:text="${targetUserNickname}">
-              닉네임
+                닉네임
             </div>
             <div
-              id="onlineStatus"
-              class="online-status-small"
-              th:text="${isTargetUserOnline} ? '● Online' : '● Offline'"
-              th:style="${isTargetUserOnline} ? 'color: #4cd137;' : 'color: #888;'"
+                    id="onlineStatus"
+                    class="online-status-small"
+                    th:text="${isTargetUserOnline} ? '● Online' : '● Offline'"
+                    th:style="${isTargetUserOnline} ? 'color: #4cd137;' : 'color: #888;'"
             >
-              ● Offline
+                ● Offline
             </div>
-          </div>
-        </a>
-        <div class="header-menu-container">
-          <button id="menuBtn" class="menu-btn">
+        </div>
+    </a>
+    <div class="header-menu-container">
+        <button id="menuBtn" class="menu-btn">
             <i class="fas fa-ellipsis-v"></i>
-          </button>
-          <div id="menuDropdown" class="menu-dropdown">
+        </button>
+        <div id="menuDropdown" class="menu-dropdown">
             <a href="#" class="menu-dropdown-item">알림 끄기</a>
             <a href="#" class="menu-dropdown-item">대화 상대 차단</a>
             <a href="#" class="menu-dropdown-item">신고</a>
-          </div>
         </div>
-      </header>
+    </div>
+</header>
+<th:block th:fragment="content">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/sockjs-client/1.6.1/sockjs.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
 
-      <div class="content-scrollable messages-area" id="messagesArea"></div>
+    <div class="content-scrollable messages-area" id="messagesArea"></div>
 
-      <div class="chat-input-area">
+    <div class="chat-input-area">
         <input
-          type="file"
-          id="fileInput"
-          accept="image/*"
-          class="input-hidden"
+                type="file"
+                id="fileInput"
+                accept="image/*"
+                class="input-hidden"
         />
         <button id="uploadBtn" class="upload-btn">
-          <i class="fas fa-plus"></i>
+            <i class="fas fa-plus"></i>
         </button>
 
         <input
-          type="text"
-          class="chat-input"
-          id="messageInput"
-          placeholder="Type a message..."
-          autocomplete="off"
+                type="text"
+                class="chat-input"
+                id="messageInput"
+                placeholder="Type a message..."
+                autocomplete="off"
         />
         <button class="send-btn" onclick="sendMessage()">
-          <i class="fas fa-paper-plane"></i>
+            <i class="fas fa-paper-plane"></i>
         </button>
-      </div>
-    <div id="imageModal" class="image-modal">
-      <span class="close-modal">&times;</span>
-      <img class="modal-content" id="modalImage" />
     </div>
-
+    <div id="imageModal" class="image-modal">
+        <span class="close-modal">&times;</span>
+        <img class="modal-content" id="modalImage" />
+    </div>
     <script th:inline="javascript">
-      const roomId = /*[[${roomId}]]*/ "room1";
-      const userId = /*[[${userId}]]*/ 1;
-      let stompClient = null;
-      let lastDateKey = null;
+        const roomId = /*[[${roomId}]]*/ "room1";
+        const userId = /*[[${userId}]]*/ 1;
 
-      async function loadHistory() {
-        try {
-          const messagesArea = document.getElementById("messagesArea");
-          if (messagesArea) {
-            messagesArea.innerHTML = "";
-          }
-          lastDateKey = null;
-          const res = await fetch(
-            `/api/v1/chats/rooms/${roomId}/messages?page=0&size=50`,
-          );
-          const body = await res.json();
-          if (!body.data) return;
-          body.data.forEach(showMessage);
-          const area = document.getElementById("messagesArea");
-          if (area) {
-            area.scrollTop = area.scrollHeight;
-            const imgs = area.querySelectorAll("img");
-            imgs.forEach((img) => {
-              if (!img.complete) {
-                img.addEventListener(
-                  "load",
-                  () => {
-                    area.scrollTop = area.scrollHeight;
-                  },
-                  { once: true },
+        let stompClient = null;
+        let lastDateKey = null;
+
+        const ChatApp = {
+            messagesArea: null,
+            input: null,
+
+            init() {
+                this.messagesArea = document.getElementById("messagesArea");
+                this.input = document.getElementById("messageInput");
+
+                this.bindEvents();
+                this.connectSocket();
+                this.loadHistory();
+            },
+
+            bindEvents() {
+                this.input.addEventListener("keydown", (e) => {
+                    if (e.isComposing) return;
+                    if (e.key === "Enter") {
+                        e.preventDefault();
+                        this.sendMessage();
+                    }
+                });
+
+                document.getElementById("uploadBtn")
+                    .addEventListener("click", () => {
+                        document.getElementById("fileInput").click();
+                    });
+
+                document.getElementById("fileInput")
+                    .addEventListener("change", this.uploadImage.bind(this));
+
+                document.getElementById("menuBtn")
+                    .addEventListener("click", () => {
+                        const menu = document.getElementById("menuDropdown");
+                        menu.style.display =
+                            menu.style.display === "none" ? "block" : "none";
+                    });
+
+                document.querySelector(".close-modal")
+                    .addEventListener("click", () => {
+                        document.getElementById("imageModal").style.display = "none";
+                    });
+            },
+
+            connectSocket() {
+                const socket = new SockJS("/ws/chat");
+                stompClient = Stomp.over(socket);
+                stompClient.debug = () => {};
+
+                stompClient.connect({}, () => {
+                    stompClient.subscribe(`/topic/chats/${roomId}`, (msg) => {
+                        this.renderMessage(JSON.parse(msg.body));
+                    });
+                }, () => {
+                    console.log("reconnecting websocket...");
+                    setTimeout(() => this.connectSocket(), 5000);
+                });
+            },
+
+            async loadHistory() {
+                fnApiGet(`/api/v1/chats/rooms/${roomId}/messages`, true, {}, { page: 0, size: 50 }, "json", function(res) {
+                        if (!res.data) return;
+                        const fragment = document.createDocumentFragment();
+
+                        res.data
+                            .sort((a,b)=> new Date(a.sent_at) - new Date(b.sent_at))
+                            .forEach(msg => {
+
+                                const nodes = ChatApp.createMessageNode(msg);
+
+                                nodes.forEach(node => fragment.appendChild(node));
+
+                            });
+
+                        ChatApp.messagesArea.appendChild(fragment);
+                        ChatApp.scrollToBottom();
+                    }
                 );
-              }
-            });
-          }
-        } catch (e) {
-          console.error("history load error", e);
-        }
-      }
+            },
 
-      function connect() {
-        const socket = new SockJS("/ws/chat");
-        stompClient = Stomp.over(socket);
-        stompClient.debug = null; // Disable debug logs
+            sendMessage() {
+                const content = this.input.value.trim();
 
-        stompClient.connect(
-          {},
-          function (frame) {
-            console.log("Connected: " + frame);
+                if (!content || !stompClient) return;
 
-            stompClient.subscribe("/topic/chats/" + roomId, function (message) {
-              console.log("Subscribed: " + message);
-              showMessage(JSON.parse(message.body));
-            });
-          },
-          function (error) {
-            console.error("Connection error:", error);
-          },
-        );
-      }
-
-      function sendMessage() {
-        const input = document.getElementById("messageInput");
-        const content = input.value.trim();
-
-        if (!content || !stompClient) return;
-
-        const message = {
-          sender_user_id: userId,
-          content: content,
-        };
-
-        stompClient.send("/pub/chats/" + roomId, {}, JSON.stringify(message));
-        input.value = "";
-      }
-
-      function showMessage(message) {
-        const messagesArea = document.getElementById("messagesArea");
-        const sentDate = message.sent_at
-          ? new Date(message.sent_at)
-          : new Date();
-        const dateKey = sentDate.toISOString().slice(0, 10);
-        const dateLabel = sentDate.toLocaleDateString("ko-KR", {
-          year: "numeric",
-          month: "2-digit",
-          day: "2-digit",
-        });
-
-        if (lastDateKey !== dateKey) {
-          const dateDiv = document.createElement("div");
-          dateDiv.className = "date-separator";
-          dateDiv.textContent = dateLabel;
-          messagesArea.appendChild(dateDiv);
-          lastDateKey = dateKey;
-        }
-
-        const messageContainer = document.createElement("div");
-        const isMe = message.sender_user_id === userId;
-        messageContainer.className = isMe
-          ? "message-wrapper me"
-          : "message-wrapper other";
-
-        const bubble = document.createElement("div");
-        bubble.className = "message-bubble";
-
-        const time = sentDate.toLocaleTimeString([], {
-          hour: "2-digit",
-          minute: "2-digit",
-        });
-
-        if (
-          message.type === "IMAGE" ||
-          (message.content && message.content.startsWith("data:image"))
-        ) {
-          const img = document.createElement("img");
-          img.src = message.content;
-          img.style.maxWidth = "100%";
-          img.style.borderRadius = "10px";
-          img.style.cursor = "zoom-in";
-          bubble.appendChild(img);
-
-          img.addEventListener("click", function () {
-            const modal = document.getElementById("imageModal");
-            const modalImg = document.getElementById("modalImage");
-            modal.style.display = "flex";
-            modalImg.src = this.src;
-          });
-        } else {
-          bubble.innerHTML = message.content;
-        }
-
-        const timeDiv = document.createElement("div");
-        timeDiv.className = "message-time";
-        timeDiv.textContent = time;
-
-        messageContainer.appendChild(bubble);
-        messageContainer.appendChild(timeDiv);
-
-        messagesArea.appendChild(messageContainer);
-        messagesArea.scrollTop = messagesArea.scrollHeight;
-      }
-
-      // Handle Enter key
-      document
-        .getElementById("messageInput")
-        .addEventListener("keypress", function (e) {
-          if (e.key === "Enter") {
-            sendMessage();
-          }
-        });
-      document.getElementById("uploadBtn").addEventListener("click", () => {
-        document.getElementById("fileInput").click();
-      });
-      document
-        .getElementById("fileInput")
-        .addEventListener("change", async (e) => {
-          const file = e.target.files && e.target.files[0];
-          if (!file) return;
-
-          const formData = new FormData();
-          formData.append("file", file);
-
-          try {
-            const res = await fetch("/chats/image/upload", {
-              method: "POST",
-              body: formData,
-            });
-
-            if (res.ok) {
-              const data = await res.json();
-              const imageUrl = data.url;
-
-              if (stompClient) {
-                const message = {
-                  sender_user_id: userId,
-                  content: imageUrl,
-                  type: "IMAGE",
-                };
                 stompClient.send(
-                  "/pub/chats/" + roomId,
-                  {},
-                  JSON.stringify(message),
+                    `/pub/chats/${roomId}`,
+                    {},
+                    JSON.stringify({
+                        sender_user_id: userId,
+                        content: content
+                    })
                 );
-              }
-            } else {
-              alert("Failed to upload image");
+
+                this.input.value = "";
+            },
+
+            renderMessage(message) {
+
+                const nodes = this.createMessageNode(message);
+
+                nodes.forEach(node => {
+                    this.messagesArea.appendChild(node);
+                });
+
+                this.scrollToBottom();
+            },
+
+            createMessageNode(message) {
+
+                const nodes = [];
+
+                const sentDate = message.sent_at
+                    ? new Date(message.sent_at)
+                    : new Date();
+
+                const dateKey = sentDate.toISOString().slice(0, 10);
+
+                const dateLabel = sentDate.toLocaleDateString("ko-KR", {
+                    year: "numeric",
+                    month: "2-digit",
+                    day: "2-digit",
+                });
+
+                // 날짜 separator
+                if (lastDateKey !== dateKey) {
+
+                    const dateDiv = document.createElement("div");
+                    dateDiv.className = "date-separator";
+                    dateDiv.textContent = dateLabel;
+
+                    nodes.push(dateDiv);
+
+                    lastDateKey = dateKey;
+                }
+
+                const messageContainer = document.createElement("div");
+
+                const isMe = message.sender_user_id === userId;
+
+                messageContainer.className =
+                    isMe ? "message-wrapper me" : "message-wrapper other";
+
+                const bubble = document.createElement("div");
+                bubble.className = "message-bubble";
+
+                if (
+                    message.type === "IMAGE" ||
+                    (message.content && message.content.startsWith("data:image"))
+                ) {
+
+                    const img = document.createElement("img");
+
+                    img.src = message.content;
+                    img.style.maxWidth = "100%";
+                    img.style.borderRadius = "10px";
+                    img.style.cursor = "zoom-in";
+
+                    img.addEventListener("click", () => this.openImage(img.src));
+
+                    bubble.appendChild(img);
+
+                } else {
+
+                    bubble.innerHTML = message.content;
+
+                }
+
+                const timeDiv = document.createElement("div");
+
+                timeDiv.className = "message-time";
+
+                timeDiv.textContent = sentDate.toLocaleTimeString([], {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                });
+
+                messageContainer.appendChild(bubble);
+                messageContainer.appendChild(timeDiv);
+
+                nodes.push(messageContainer);
+
+                return nodes;
+            },
+
+            scrollToBottom() {
+                requestAnimationFrame(() => {
+                    this.messagesArea.scrollTop = this.messagesArea.scrollHeight;
+                });
+            },
+
+            async uploadImage(e) {
+                const file = e.target.files?.[0];
+                if (!file) return;
+
+                if (file.size > 5 * 1024 * 1024) {
+                    alert("이미지는 5MB 이하만 업로드 가능합니다.");
+                    return;
+                }
+
+                const formData = new FormData();
+                formData.append("file", file);
+
+                fnApiUpload(
+                    "/chats/image/upload",
+                    {},
+                    formData,
+                    function(res) {
+
+                        const imageUrl = res.url;
+
+                        stompClient.send(`/pub/chats/${roomId}`, {}, JSON.stringify({
+                            sender_user_id: userId,
+                            content: imageUrl,
+                            type: "IMAGE"
+                        }));
+                    }
+                );
+
+                e.target.value = "";
+            },
+
+            openImage(src) {
+                const modal = document.getElementById("imageModal");
+                const modalImg = document.getElementById("modalImage");
+
+                modal.style.display = "flex";
+                modalImg.src = src;
             }
-          } catch (error) {
-            console.error("Error uploading image:", error);
-            alert("Error uploading image");
-          }
 
-          e.target.value = "";
-        });
-      const modal = document.getElementById("imageModal");
-      const modalImg = document.getElementById("modalImage");
-      const closeBtn = document.getElementsByClassName("close-modal")[0];
-      if (modal && modalImg && closeBtn) {
-        closeBtn.onclick = function () {
-          modal.style.display = "none";
-          modalImg.src = "";
         };
-        modal.onclick = function (e) {
-          if (e.target === modal) {
-            modal.style.display = "none";
-            modalImg.src = "";
-          }
-        };
-      }
-      document.getElementById("menuBtn").addEventListener("click", () => {
-        const menu = document.getElementById("menuDropdown");
-        menu.style.display = menu.style.display === "none" ? "block" : "none";
-      });
 
-      loadHistory().then(connect);
+        ChatApp.init();
     </script>
-</section>
+</th:block>

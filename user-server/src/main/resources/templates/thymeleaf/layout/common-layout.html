@@ -1,0 +1,22 @@
+<!doctype html>
+<html xmlns:th="http://www.thymeleaf.org" th:fragment="layout(content, showFilter, active)" lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>GRIZZLY</title>
+    <link rel="stylesheet" href="/css/style.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"/>
+    <meta name="chat-base-url" th:content="${@environment.getProperty('external.chat-server.url')}"/>
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js" crossorigin="anonymous"></script>
+    <script src="/js/common-ajax.js"></script>
+  </head>
+  <body>
+    <div class="container">
+      <th:block th:replace="~{thymeleaf/fragments/header :: header(${showFilter})}"></th:block>
+      <div class="content-scrollable">
+        <th:block th:insert="${content}"></th:block>
+      </div>
+      <th:block th:replace="~{thymeleaf/fragments/bottom :: bottomNav(${active})}"></th:block>
+    </div>
+  </body>
+</html>

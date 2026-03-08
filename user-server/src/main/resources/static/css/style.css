@@ -115,9 +115,9 @@ header {
 }
 
 .header-title {
+  flex:1;
   font-size: 2rem;
   font-weight: bold;
-  margin-bottom: 30px;
   text-align: center;
   color: var(--accent-color);
 }
