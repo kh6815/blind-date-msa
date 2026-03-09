@@ -14,6 +14,17 @@ FROM eclipse-temurin:17-jre-alpine
 
 WORKDIR /app
 
+# mkcert root CA 복사
+COPY rootCA.pem /rootCA.pem
+
+# JVM truststore에 mkcert CA 등록
+RUN keytool -importcert \
+    -alias mkcert-root \
+    -file /rootCA.pem \
+    -keystore $JAVA_HOME/lib/security/cacerts \
+    -storepass changeit \
+    -noprompt
+
 COPY --from=builder /workspace/chat-server/build/libs/chat-server-*.jar app.jar
 
 EXPOSE 8082

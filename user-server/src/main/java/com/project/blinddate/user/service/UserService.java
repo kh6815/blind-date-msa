@@ -239,6 +239,13 @@ public class UserService {
         return response;
     }
 
+    @Transactional
+    public void updateLocation(Long userId, Double latitude, Double longitude) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("유저를 찾을 수 없습니다."));
+        user.updateLocation(latitude, longitude);
+    }
+
     private List<String> parseInterests(String interestsCsv) {
         if (!StringUtils.hasText(interestsCsv)) {
             return List.of();

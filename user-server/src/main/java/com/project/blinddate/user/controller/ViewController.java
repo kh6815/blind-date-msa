@@ -9,8 +9,9 @@ import com.project.blinddate.user.dto.UserUpdateRequest;
 import com.project.blinddate.user.service.UserService;
 import com.project.blinddate.user.service.UserImageStorageService;
 import com.project.blinddate.user.security.JwtTokenProvider;
-import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.ResponseCookie;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -137,12 +138,23 @@ public class ViewController {
             String cookieValue = "Bearer " + token;
             cookieValue = URLEncoder.encode(cookieValue, StandardCharsets.UTF_8);
 
-            Cookie cookie = new Cookie("Authorization", cookieValue);
-            cookie.setHttpOnly(true);
-            cookie.setPath("/");
-            cookie.setMaxAge(24 * 60 * 60); // 1 day
-            cookie.setDomain(COOKIE_DOMAIN);
-            response.addCookie(cookie);
+//            Cookie cookie = new Cookie("Authorization", cookieValue);
+//            cookie.setHttpOnly(true);
+//            cookie.setPath("/");
+//            cookie.setMaxAge(24 * 60 * 60); // 1 day
+//            cookie.setDomain(COOKIE_DOMAIN);
+//            response.addCookie(cookie);
+
+            ResponseCookie cookie = ResponseCookie.from("Authorization", cookieValue)
+                    .httpOnly(true)
+                    .secure(true) // HTTPS enabled
+                    .path("/")
+                    .maxAge(24 * 60 * 60) // 1 day
+                    .domain(COOKIE_DOMAIN)
+                    .sameSite("Lax")
+                    .build();
+            
+            response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
 
             return "redirect:/";
         } catch (IllegalArgumentException e) {
@@ -170,10 +182,11 @@ public class ViewController {
             String tokenKey = USER_TOKEN_KEY_PREFIX + token;
             redisTemplate.delete(tokenKey);
         }
-        Cookie cookie = new Cookie("Authorization", "");
-        cookie.setPath("/");
-        cookie.setMaxAge(0);
-        response.addCookie(cookie);
+        ResponseCookie cookie = ResponseCookie.from("Authorization", "")
+                .path("/")
+                .maxAge(0)
+                .build();
+        response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
         return "redirect:/login";
     }
 

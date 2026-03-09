@@ -118,6 +118,11 @@ public class User {
         if (longitude != null) this.longitude = longitude;
         if (profileImageUrl != null) this.profileImageUrl = profileImageUrl;
     }
+
+    public void updateLocation(Double latitude, Double longitude) {
+        if (latitude != null) this.latitude = latitude;
+        if (longitude != null) this.longitude = longitude;
+    }
 }
 
 

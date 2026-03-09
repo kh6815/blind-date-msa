@@ -1,4 +1,4 @@
-function fnApiGet(url, isAsync, headers, data, dataType, call_func) {
+function fnApiGet(url, isAsync, headers, data, dataType, call_func, error_func, complete_func) {
     $.ajax({
         url : url,
         async : isAsync,
@@ -11,12 +11,19 @@ function fnApiGet(url, isAsync, headers, data, dataType, call_func) {
             fnResCheck(dataType, res, call_func)
         },
         error: function(error) {
-            fnErrorCheck(dataType, error)
+            if (error_func) {
+                error_func(error);
+            } else {
+                fnErrorCheck(dataType, error);
+            }
+        },
+        complete: function(res) {
+            if (complete_func) complete_func(res);
         }
     });
 }
 
-function fnApiPost(url, isAsync, headers, data, dataType, call_func) {
+function fnApiPost(url, isAsync, headers, data, dataType, call_func, error_func, complete_func) {
     $.ajax({
         url : url,
         async : isAsync,
@@ -31,10 +38,92 @@ function fnApiPost(url, isAsync, headers, data, dataType, call_func) {
             fnResCheck(dataType, res, call_func)
         },
         error: function(error) {
-            fnErrorCheck(dataType, error)
+            if (error_func) {
+                error_func(error);
+            } else {
+                fnErrorCheck(dataType, error);
+            }
         },
         complete: function(res) {
+            if (complete_func) complete_func(res);
+        }
+    });
+}
 
+function fnApiPut(url, isAsync, headers, data, dataType, call_func, error_func, complete_func) {
+    $.ajax({
+        url : url,
+        async : isAsync,
+        type : 'put',
+        headers : headers ? headers : {},
+        contentType: 'application/json',
+        data : data ? JSON.stringify(data) : {},
+        dataType : dataType, // json or html
+        xhrFields: { withCredentials: true },
+        success : function(res) {
+            fnResCheck(dataType, res, call_func)
+        },
+        error: function(error) {
+            if (error_func) {
+                error_func(error);
+            } else {
+                fnErrorCheck(dataType, error);
+            }
+        },
+        complete: function(res) {
+            if (complete_func) complete_func(res);
+        }
+    });
+}
+
+function fnApiPatch(url, isAsync, headers, data, dataType, call_func, error_func, complete_func) {
+    $.ajax({
+        url : url,
+        async : isAsync,
+        type : 'patch',
+        headers : headers ? headers : {},
+        contentType: 'application/json',
+        data : data ? JSON.stringify(data) : {},
+        dataType : dataType, // json or html
+        xhrFields: { withCredentials: true },
+        success : function(res) {
+            fnResCheck(dataType, res, call_func)
+        },
+        error: function(error) {
+            if (error_func) {
+                error_func(error);
+            } else {
+                fnErrorCheck(dataType, error);
+            }
+        },
+        complete: function(res) {
+            if (complete_func) complete_func(res);
+        }
+    });
+}
+
+function fnApiDelete(url, isAsync, headers, data, dataType, call_func, error_func, complete_func) {
+    $.ajax({
+        url : url,
+        async : isAsync,
+        type : 'delete',
+        headers : headers ? headers : {},
+        contentType: 'application/json',
+        data : data ? JSON.stringify(data) : {},
+        dataType : dataType, // json or html
+        xhrFields: { withCredentials: true },
+        success : function(res) {
+            fnResCheck(dataType, res, call_func)
+        },
+        error: function(error) {
+            if (error_func) {
+                error_func(error);
+            } else {
+                fnErrorCheck(dataType, error);
+            }
+        },
+        complete: function(res) {
+            if (complete_func) complete_func(res);
         }
     });
 }
@@ -61,7 +150,7 @@ function fnResCheck(dataType, res, callback_func) {
     }
 
     // 응답값이 json일 경우
-    if (res.header && res.header.resultCode === 200) {
+    if (res) {
         callback_func(res);
     } else {
         // const msgData = res.header.resultMessage ? res.header.resultMessage : '영어로 바꾸시오. 유효하지 않은 호출입니다. '

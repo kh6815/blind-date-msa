@@ -2,16 +2,22 @@ package com.project.blinddate.user.controller;
 
 import com.project.blinddate.common.ApiPathConst;
 import com.project.blinddate.common.dto.ResponseDto;
+import com.project.blinddate.user.dto.UserIdRequest;
+import com.project.blinddate.user.dto.UserLocationUpdateRequest;
 import com.project.blinddate.user.dto.UserRegisterRequest;
 import com.project.blinddate.user.dto.UserResponse;
+import com.project.blinddate.user.security.JwtTokenProvider;
 import com.project.blinddate.user.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -21,6 +27,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 
+@Slf4j
 @Tag(name = "User API", description = "유저 도메인 API")
 @RestController
 @RequiredArgsConstructor
@@ -28,6 +35,7 @@ import java.util.List;
 public class UserController {
 
     private final UserService userService;
+    private final JwtTokenProvider jwtTokenProvider;
 
     @Operation(summary = "회원가입", description = "소개팅 서비스 유저를 등록합니다.")
     @PostMapping
@@ -57,6 +65,20 @@ public class UserController {
     ) {
         List<UserResponse> response = userService.recommendUsers(gender, mbti, interests, limit);
         return ResponseEntity.ok(ResponseDto.ok(response));
+    }
+
+    @Operation(summary = "유저 위치 업데이트", description = "유저의 현재 위치 정보를 업데이트합니다.")
+    @PatchMapping("/location")
+    public ResponseEntity<ResponseDto<Void>> updateLocation(
+            @RequestBody UserLocationUpdateRequest locationRequest,
+            UserIdRequest userIdRequest
+    ) {
+        userService.updateLocation(
+                userIdRequest.getId(),
+                locationRequest.getLatitude(),
+                locationRequest.getLongitude()
+        );
+        return ResponseEntity.ok(ResponseDto.ok(null));
     }
 }
 

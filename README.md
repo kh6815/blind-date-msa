@@ -21,3 +21,8 @@
 Gradle 멀티 모듈 구조이므로 루트에서 `./gradlew :user-server:bootRun`, `./gradlew :chat-server:bootRun` 으로 각각 실행합니다.
 또는  `docker compose up -d --build user-server-1 user-server-2 chat-server-1 chat-server-2` 를 통해 docker 바로 실행
 
+
+mkcert를 통한 https 인증서 등록
+mkcert -key-file key.pem -cert-file cert.pem "*.blind-date.com" blind-date.com
++추가적으로 docker container로 돌리기 때문에 docker 내부 JVM truststore에 등록하기(mkcert의 rootCA.pem을 해당 루트 경로로 이동, DockFile에서 사용)
+

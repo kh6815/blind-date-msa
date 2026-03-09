@@ -94,9 +94,44 @@
         },
       );
 
-      if (hasNext) {
-        observer.observe(sentinel);
+      function startObserver() {
+          if (hasNext) {
+              observer.observe(sentinel);
+          }
       }
+
+      function updateUserLocation() {
+          if (!navigator.geolocation) {
+              console.log("Geolocation not supported");
+              startObserver();
+              return;
+          }
+
+          navigator.geolocation.getCurrentPosition(
+              (position) => {
+                  const { latitude, longitude } = position.coords;
+                  
+                  fnApiPatch('/api/v1/users/location', true, {}, { latitude, longitude }, 'json',
+                      function(response) {
+                          console.log("Location updated successfully");
+                      },
+                      function(error) {
+                          console.error("Error updating location:", error);
+                      },
+                      function() {
+                          startObserver();
+                      }
+                  );
+              },
+              (error) => {
+                  console.warn("Geolocation permission denied or error:", error);
+                  startObserver();
+              }
+          );
+      }
+
+      // Start location update process
+      updateUserLocation();
 
       function loadMoreUsers() {
         if (isLoading || !hasNext) return;
@@ -108,12 +143,8 @@
         params.set("page", page);
         params.set("size", size);
 
-        fetch("/users/list?" + params.toString())
-          .then((response) => {
-            if (!response.ok) throw new Error("Network response was not ok");
-            return response.text();
-          })
-          .then((html) => {
+        fnApiGet("/users/list", true, {}, params.toString(), 'html',
+          function(html) {
             // Check if HTML is empty or whitespace
             if (!html || html.trim().length === 0) {
               hasNext = false;
@@ -140,14 +171,15 @@
               // But since we filter out current user in controller,
               // the count might be size - 1. So it's safer to keep going until empty.
             }
-          })
-          .catch((error) => {
+          },
+          function(error) {
             console.error("Error fetching users:", error);
-          })
-          .finally(() => {
+          },
+          function() {
             isLoading = false;
             loadingIndicator.style.display = "none";
-          });
+          }
+        );
       }
       /*]]>*/
   </script>
