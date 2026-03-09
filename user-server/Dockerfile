@@ -18,7 +18,7 @@ FROM eclipse-temurin:17-jre-alpine
 WORKDIR /app
 
 # mkcert root CA 복사
-COPY rootCA.pem /rootCA.pem
+COPY cert/rootCA.pem /rootCA.pem
 
 # JVM truststore에 mkcert CA 등록
 RUN keytool -importcert \
