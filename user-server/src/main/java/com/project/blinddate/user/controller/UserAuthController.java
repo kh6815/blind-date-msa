@@ -50,39 +50,27 @@ public class UserAuthController {
         if (userIdStr == null) {
             return ResponseEntity.status(401).body(ResponseDto.of(401, "session expired", null));
         }
-        try {
-            Long tokenUserId = jwtTokenProvider.getUserId(token);
-            Long redisUserId = Long.valueOf(userIdStr);
-            if (!tokenUserId.equals(redisUserId)) {
-                return ResponseEntity.status(401).body(ResponseDto.of(401, "token mismatch", null));
-            }
 
-            updateUserActivity(token);
-            return ResponseEntity.ok(ResponseDto.ok(tokenUserId));
-        } catch (Exception e) {
-            return ResponseEntity.status(401).body(ResponseDto.of(401, "invalid token", null));
+        Long tokenUserId = jwtTokenProvider.getUserId(token);
+        Long redisUserId = Long.valueOf(userIdStr);
+        if (!tokenUserId.equals(redisUserId)) {
+            return ResponseEntity.status(401).body(ResponseDto.of(401, "token mismatch", null));
         }
+
+        updateUserActivity(token);
+        return ResponseEntity.ok(ResponseDto.ok(tokenUserId));
     }
 
     public void updateUserActivity(String token) {
-        try {
-            // Remove quotes if present (sometimes Kafka sends strings with quotes depending on serializer)
-            // But usually StringSerializer sends raw string.
-            // If it's JSON string, we might need to handle it.
-            // Assuming ChatServer sends raw string via KafkaTemplate<String, String>.
+        if (token != null && jwtTokenProvider.validateToken(token)) {
+            Long userId = jwtTokenProvider.getUserId(token);
+            // userId를 Key로 사용하여 온라인 상태 갱신
+            String key = USER_PRESENCE_KEY_PREFIX + userId;
 
-            if (token != null && jwtTokenProvider.validateToken(token)) {
-                Long userId = jwtTokenProvider.getUserId(token);
-                // userId를 Key로 사용하여 온라인 상태 갱신
-                String key = USER_PRESENCE_KEY_PREFIX + userId;
-
-                redisTemplate.opsForValue().set(key, "online", USER_ACTIVITY_TTL);
-                log.debug("Consumed user activity event for userId: {}", userId);
-            } else {
-                log.warn("Invalid token received in user activity event");
-            }
-        } catch (Exception e) {
-            log.error("Failed to process user activity event: {}", e.getMessage());
+            redisTemplate.opsForValue().set(key, "online", USER_ACTIVITY_TTL);
+            log.debug("Consumed user activity event for userId: {}", userId);
+        } else {
+            log.warn("Invalid token received in user activity event");
         }
     }
 }

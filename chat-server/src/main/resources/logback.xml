@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- 30초마다 설정 파일의 변경을 확인한다. 파일이 변경되면 다시 로딩한다 -->
+<configuration scan="true">
+	<statusListener class="ch.qos.logback.core.status.NopStatusListener"/>
+
+	<appender name="Console" class="ch.qos.logback.core.ConsoleAppender">
+		<encoder>
+			<pattern>%magenta([%d{yyyy-MM-dd HH:mm:ss}]) - %highlight([%level]) - %yellow([%thread])- %blue([%mdc{traceId}]) - %red([%mdc{ipAddress}]) - %green([%logger{36}]) - %msg%n</pattern>
+		</encoder>
+	</appender>
+
+	<!-- API 로깅 -->
+	<appender name="LogFile" class="ch.qos.logback.core.rolling.RollingFileAppender">
+		<!-- INFO, WARN만 남기고 ERROR는 제외 -->
+		<filter class="ch.qos.logback.classic.filter.LevelFilter">
+			<level>ERROR</level>
+			<onMatch>DENY</onMatch>
+			<onMismatch>NEUTRAL</onMismatch>
+		</filter>
+		<file>./logs/blind-date-chat-server-api.log</file>
+		<encoder class="ch.qos.logback.core.encoder.LayoutWrappingEncoder">
+			<charset>UTF-8</charset>
+			<layout class="com.project.blinddate.chat.logger.JsonLogLayout"/>
+		</encoder>
+		<rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+			<!-- 날짜 + 인덱스 필수 -->
+			<fileNamePattern>./logs/blind-date-chat-server-api.%d{yyyy-MM-dd}-%i.gz</fileNamePattern>
+			<!-- 파일 하나 최대 1GB -->
+			<maxFileSize>1GB</maxFileSize>
+			<!-- 60일 보관 -->
+			<maxHistory>60</maxHistory>
+			<!-- 전체 로그 총합 제한 (선택) -->
+			<totalSizeCap>80GB</totalSizeCap>
+		</rollingPolicy>
+	</appender>
+
+	<!-- error 로깅 -->
+	<appender name="ErrorLogFile" class="ch.qos.logback.core.rolling.RollingFileAppender">
+		<filter class="ch.qos.logback.classic.filter.LevelFilter">
+			<level>ERROR</level>
+			<onMatch>ACCEPT</onMatch>
+			<onMismatch>DENY</onMismatch>
+		</filter>
+		<file>./logs/blind-date-chat-server-error.log</file>
+		<encoder class="ch.qos.logback.core.encoder.LayoutWrappingEncoder">
+			<charset>UTF-8</charset>
+			<layout class="com.project.blinddate.chat.logger.JsonLogLayout"/>
+		</encoder>
+		<!-- 하루에 한번 압축 후 보관, 최대 30일, 1GB까지 보관 -->
+		<rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+			<!-- 날짜 + 인덱스 필수 -->
+			<fileNamePattern>./logs/blind-date-chat-server-error.%d{yyyy-MM-dd}-%i.gz</fileNamePattern>
+			<!-- 파일 하나 최대 1GB -->
+			<maxFileSize>1GB</maxFileSize>
+			<!-- 60일 보관 -->
+			<maxHistory>60</maxHistory>
+			<!-- 전체 로그 총합 제한 (선택) -->
+			<totalSizeCap>80GB</totalSizeCap>
+		</rollingPolicy>
+	</appender>
+
+	<logger name="org.springframework" level="INFO"/>
+	<logger name="jdbc.audit" level="INFO"/>
+
+	<logger name="jdbc.sqlonly" level="INFO" />
+	<logger name="org.thymeleaf" level="INFO" />
+	<!-- JavaMailSender 관련 로그 레벨 조정 -->
+	<logger name="org.springframework.mail.javamail" level="INFO"/>
+	<logger name="javax.mail" level="INFO"/>
+	<logger name="com.sun.mail" level="INFO" />
+	<logger name="p6spy" level="INFO" additivity="false"/>
+
+	<!-- INFO 레벨 이상 남김 - TRACE < DEBUG < INFO < WARN < ERROR < FATAL-->
+	<root level="INFO">
+		<appender-ref ref="Console"/>
+		<appender-ref ref="LogFile"/>
+		<appender-ref ref="ErrorLogFile"/>
+	</root>
+</configuration>

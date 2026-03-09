@@ -55,15 +55,11 @@ public class ChatUserActivityAspect {
             for (int i = 0; i < args.length; i++) {
                 // ChatUserIdRequest 타입이면 교체
                 if (args[i] instanceof ChatUserIdRequest) {
-                    try {
-                        ChatUserIdRequest chatUserIdRequest = ChatUserIdRequest.builder()
-                                .currentUserId(currentUserId)
-                                .build();
+                    ChatUserIdRequest chatUserIdRequest = ChatUserIdRequest.builder()
+                            .currentUserId(currentUserId)
+                            .build();
 
-                        args[i] = chatUserIdRequest; // 교체된 데이터로 세팅
-                    } catch (Exception e) {
-                        log.error("ChatUserIdRequest 타입 데이터 교체 실패", e);
-                    }
+                    args[i] = chatUserIdRequest; // 교체된 데이터로 세팅
                 }
             }
         }
@@ -87,14 +83,10 @@ public class ChatUserActivityAspect {
             Long currentUserId = resolveUserIdViaUserServer(token);
             for (int i = 0; i < args.length; i++) {
                 if (args[i] instanceof ChatUserIdRequest) {
-                    try {
-                        ChatUserIdRequest chatUserIdRequest = ChatUserIdRequest.builder()
-                                .currentUserId(currentUserId)
-                                .build();
-                        args[i] = chatUserIdRequest;
-                    } catch (Exception e) {
-                        log.error("ChatUserIdRequest 타입 데이터 교체 실패", e);
-                    }
+                    ChatUserIdRequest chatUserIdRequest = ChatUserIdRequest.builder()
+                            .currentUserId(currentUserId)
+                            .build();
+                    args[i] = chatUserIdRequest;
                 }
             }
         }

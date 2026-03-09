@@ -60,7 +60,7 @@
                 placeholder="Type a message..."
                 autocomplete="off"
         />
-        <button class="send-btn" onclick="sendMessage()">
+        <button class="send-btn" onclick="ChatApp.sendMessage()">
             <i class="fas fa-paper-plane"></i>
         </button>
     </div>
@@ -131,6 +131,10 @@
                     console.log("reconnecting websocket...");
                     setTimeout(() => this.connectSocket(), 5000);
                 });
+                socket.onclose = () => {
+                    console.log("socket closed -> reconnect");
+                    setTimeout(() => this.connectSocket(), 3000);
+                };
             },
 
             async loadHistory() {

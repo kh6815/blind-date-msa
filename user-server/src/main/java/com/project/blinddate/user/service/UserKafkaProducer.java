@@ -29,6 +29,7 @@ public class UserKafkaProducer {
             kafkaTemplate.send(TOPIC_USER_INFO_UPDATED, String.valueOf(userId), message);
             log.info("Published user info updated event: {}", message);
         } catch (Exception e) {
+            // Kafka 연동 실패는 비즈니스 로직에 영향을 주지 않도록 로그만 남깁니다.
             log.error("Failed to publish user info updated event", e);
         }
     }

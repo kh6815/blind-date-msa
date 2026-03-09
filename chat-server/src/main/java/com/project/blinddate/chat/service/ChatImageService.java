@@ -40,29 +40,31 @@ public class ChatImageService {
         if (file == null || file.isEmpty()) {
             return null;
         }
+        // Ensure bucket exists before upload to prevent 500 errors if init failed or bucket missing
         try {
-            // Ensure bucket exists before upload to prevent 500 errors if init failed or bucket missing
             ensureBucket();
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to ensure bucket exists", e);
+        }
 
-            String ext = getExtension(file.getOriginalFilename());
-            String objectName = "chat/" + UUID.randomUUID() + (ext != null ? "." + ext : "");
+        String ext = getExtension(file.getOriginalFilename());
+        String objectName = "chat/" + UUID.randomUUID() + (ext != null ? "." + ext : "");
 
-            try (InputStream is = file.getInputStream()) {
-                minioClient.putObject(
-                        PutObjectArgs.builder()
-                                .bucket(bucket)
-                                .object(objectName)
-                                .stream(is, file.getSize(), -1)
-                                .contentType(file.getContentType())
-                                .build()
-                );
-            }
-
-            return publicEndpoint + "/" + bucket + "/" + objectName;
+        try (InputStream is = file.getInputStream()) {
+            minioClient.putObject(
+                    PutObjectArgs.builder()
+                            .bucket(bucket)
+                            .object(objectName)
+                            .stream(is, file.getSize(), -1)
+                            .contentType(file.getContentType())
+                            .build()
+            );
         } catch (Exception e) {
             log.error("Failed to upload chat image", e);
             throw new IllegalStateException("이미지를 업로드할 수 없습니다.");
         }
+
+        return publicEndpoint + "/" + bucket + "/" + objectName;
     }
 
     private void ensureBucket() throws Exception {

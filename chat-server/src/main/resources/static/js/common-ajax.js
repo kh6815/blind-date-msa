@@ -81,7 +81,6 @@ function fnResCheck(dataType, res, callback_func) {
 
     // 응답값이 json일 경우
     // if (res.header && res.header.resultCode === 200) {
-    console.log(res);
     if(res.status === 200) {
         callback_func(res);
     } else {

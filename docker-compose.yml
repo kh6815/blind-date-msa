@@ -114,6 +114,8 @@ services:
       timeout: 3s
       retries: 5
       start_period: 20s
+    volumes:
+      - ./logs/user-server-1:/app/logs
     networks:
       - app-net
 
@@ -152,6 +154,8 @@ services:
       timeout: 3s
       retries: 5
       start_period: 20s
+    volumes:
+      - ./logs/user-server-2:/app/logs
     networks:
       - app-net
 
@@ -186,6 +190,8 @@ services:
       timeout: 3s
       retries: 5
       start_period: 20s
+    volumes:
+      - ./logs/chat-server-1:/app/logs
     networks:
       - app-net
 
@@ -220,6 +226,8 @@ services:
       timeout: 3s
       retries: 5
       start_period: 20s
+    volumes:
+      - ./logs/chat-server-2:/app/logs
     networks:
       - app-net
 

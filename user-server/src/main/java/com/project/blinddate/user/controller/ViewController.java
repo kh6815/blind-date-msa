@@ -121,22 +121,21 @@ public class ViewController {
 
     @PostMapping("/login")
     public String login(String email, String password, Model model, HttpServletRequest httpRequest, HttpServletResponse response) {
-        try {
-            UserResponse user = userService.login(email, password);
+        UserResponse user = userService.login(email, password);
 
-            // JWT Token 생성 및 Redis 저장 (로그인 세션) - Key를 토큰으로 설정 (유효성 검증용)
-            String token = jwtTokenProvider.createToken(user.getId());
-            String tokenKey = USER_TOKEN_KEY_PREFIX + token;
-            redisTemplate.opsForValue().set(tokenKey, String.valueOf(user.getId()), USER_TOKEN_TTL);
+        // JWT Token 생성 및 Redis 저장 (로그인 세션) - Key를 토큰으로 설정 (유효성 검증용)
+        String token = jwtTokenProvider.createToken(user.getId());
+        String tokenKey = USER_TOKEN_KEY_PREFIX + token;
+        redisTemplate.opsForValue().set(tokenKey, String.valueOf(user.getId()), USER_TOKEN_TTL);
 
-            // 온라인 상태 저장 (활동 감지용) - Key를 userId로 설정 (조회 편의성)
-            String presenceKey = USER_PRESENCE_KEY_PREFIX + user.getId();
-            redisTemplate.opsForValue().set(presenceKey, "online", USER_ACTIVITY_TTL);
+        // 온라인 상태 저장 (활동 감지용) - Key를 userId로 설정 (조회 편의성)
+        String presenceKey = USER_PRESENCE_KEY_PREFIX + user.getId();
+        redisTemplate.opsForValue().set(presenceKey, "online", USER_ACTIVITY_TTL);
 
-            // 쿠키에 JWT 저장 (URLEncoder로 공백/특수문자 처리)
-            // Bearer prefix는 쿠키 값에 포함하거나, 서버에서 읽을 때 처리. 여기서는 포함.
-            String cookieValue = "Bearer " + token;
-            cookieValue = URLEncoder.encode(cookieValue, StandardCharsets.UTF_8);
+        // 쿠키에 JWT 저장 (URLEncoder로 공백/특수문자 처리)
+        // Bearer prefix는 쿠키 값에 포함하거나, 서버에서 읽을 때 처리. 여기서는 포함.
+        String cookieValue = "Bearer " + token;
+        cookieValue = URLEncoder.encode(cookieValue, StandardCharsets.UTF_8);
 
 //            Cookie cookie = new Cookie("Authorization", cookieValue);
 //            cookie.setHttpOnly(true);
@@ -145,22 +144,18 @@ public class ViewController {
 //            cookie.setDomain(COOKIE_DOMAIN);
 //            response.addCookie(cookie);
 
-            ResponseCookie cookie = ResponseCookie.from("Authorization", cookieValue)
-                    .httpOnly(true)
-                    .secure(true) // HTTPS enabled
-                    .path("/")
-                    .maxAge(24 * 60 * 60) // 1 day
-                    .domain(COOKIE_DOMAIN)
-                    .sameSite("Lax")
-                    .build();
-            
-            response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
+        ResponseCookie cookie = ResponseCookie.from("Authorization", cookieValue)
+                .httpOnly(true)
+                .secure(true) // HTTPS enabled
+                .path("/")
+                .maxAge(24 * 60 * 60) // 1 day
+                .domain(COOKIE_DOMAIN)
+                .sameSite("Lax")
+                .build();
+        
+        response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
 
-            return "redirect:/";
-        } catch (IllegalArgumentException e) {
-            model.addAttribute("error", e.getMessage());
-            return "login";
-        }
+        return "redirect:/";
     }
 
     @GetMapping("/signup")

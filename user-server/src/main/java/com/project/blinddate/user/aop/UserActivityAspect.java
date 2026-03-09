@@ -50,14 +50,10 @@ public class UserActivityAspect {
                 // UserIdRequest 타입이면 현재 userId로 교체
                 for (int i = 0; i < args.length; i++) {
                     if (args[i] instanceof UserIdRequest) {
-                        try {
-                            UserIdRequest userIdRequest = UserIdRequest.builder()
-                                    .id(userId)
-                                    .build();
-                            args[i] = userIdRequest;
-                        } catch (Exception e) {
-                            log.error("UserIdRequest 타입 데이터 교체 실패", e);
-                        }
+                        UserIdRequest userIdRequest = UserIdRequest.builder()
+                                .id(userId)
+                                .build();
+                        args[i] = userIdRequest;
                     }
                 }
             }

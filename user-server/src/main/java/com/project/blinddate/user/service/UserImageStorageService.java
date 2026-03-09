@@ -41,6 +41,7 @@ public class UserImageStorageService {
         try {
             ensureBucket();
         } catch (Exception e) {
+            // 서버 시작 시 Minio 연결 실패는 로그만 남기고 서비스를 시작할 수 있도록 합니다.
             log.error("Failed to initialize Minio bucket", e);
         }
     }

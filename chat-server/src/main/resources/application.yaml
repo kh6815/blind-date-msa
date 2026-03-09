@@ -31,6 +31,7 @@ mongock:
   migration-scan-package: com.project.blinddate.chat.migration
 
 logging:
+  config: classpath:logback.xml
   level:
     org.springframework.web: info
 

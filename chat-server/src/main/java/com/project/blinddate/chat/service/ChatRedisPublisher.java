@@ -24,6 +24,7 @@ public class ChatRedisPublisher {
             redisTemplate.convertAndSend(channelTopic.getTopic(), jsonMessage);
         } catch (JsonProcessingException e) {
             log.error("Failed to serialize message: {}", message, e);
+            throw new IllegalStateException("메시지를 직렬화할 수 없습니다.", e);
         }
     }
 }
