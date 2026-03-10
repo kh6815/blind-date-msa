@@ -1,0 +1,89 @@
+# auth_enabled: false
+
+# server:
+#   http_listen_port: 3100
+
+# common:
+#   instance_addr: 127.0.0.1
+#   path_prefix: /loki
+#   storage:
+#     filesystem:
+#       chunks_directory: /loki/chunks
+#       rules_directory: /loki/rules
+#   replication_factor: 1
+#   ring:
+#     kvstore:
+#       store: inmemory
+
+# schema_config:
+#   configs:
+#     - from: 2023-01-01
+#       store: boltdb-shipper
+#       object_store: filesystem
+#       schema: v11
+#       index:
+#         prefix: index_
+#         period: 24h
+
+auth_enabled: false
+
+server:
+  http_listen_port: 3100
+  #grpc_server_max_recv_msg_size: 20971520 # Default 20MB, increase if needed
+  grpc_server_max_recv_msg_size: 104857600   # 100MB 그라파나와 통신 grpc 사이즈 지정
+  grpc_server_max_send_msg_size: 104857600	
+
+frontend_worker:
+  grpc_client_config:
+    max_send_msg_size: 104857600
+    max_recv_msg_size: 104857600
+
+limits_config:
+  query_timeout: 5m
+  retention_period: 2160h             # 90일간 로그 보관
+  ingestion_rate_mb: 16               # 초당 16MB 수집 제한
+  ingestion_burst_size_mb: 32         # 버스트 시 32MB까지 허용
+  max_query_parallelism: 32           # 최대 32개 병렬 쿼리
+  allow_structured_metadata: false    # 구조화된 메타데이터 비허용
+  max_line_size: 10MB         # 한 줄의 최대 크기
+  max_line_size_truncate: true
+  #max_line_size: 0 
+  #max_entry_size: 2MB         # 한 줄의 최대 크기
+  reject_old_samples: true
+  reject_old_samples_max_age: 168h # 7일 이상 된 로그 거부
+
+common:
+  path_prefix: /loki
+  storage:
+    filesystem:
+      chunks_directory: /loki/chunks
+      rules_directory: /loki/rules
+  replication_factor: 1
+  ring:
+    kvstore:
+      store: inmemory
+
+query_range:
+  results_cache:
+    cache:
+      embedded_cache:
+        enabled: true
+        max_size_mb: 100
+
+schema_config:
+  configs:
+    - from: 2024-02-04
+      store: tsdb
+      object_store: filesystem
+      schema: v13
+      index:
+        prefix: index_
+        period: 24h
+  
+compactor:
+  working_directory: /loki/boltdb-shipper-compactor
+  compaction_interval: 10m            # 10분마다 압축 작업
+  retention_enabled: true             # 보관 기간 정책 활성화
+  retention_delete_delay: 2h          # 삭제 전 2시간 대기
+  retention_delete_worker_count: 150  # 삭제 작업 워커 150개
+  delete_request_store: filesystem    # 삭제 요청 정보 저장소

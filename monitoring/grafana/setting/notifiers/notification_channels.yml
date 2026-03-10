@@ -1,0 +1,14 @@
+apiVersion: 1
+
+notification_channels:
+  - name: Slack Alert
+    type: slack
+    uid: slack_alert_uid  # 고유한 UID를 지정
+    isDefault: true
+    sendReminder: false
+    settings:
+      url: "https://hooks.slack.com/services/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"  # Slack Webhook URL
+      channel: "#모니터링"  # 알림을 받을 Slack 채널
+      sendResolved: true
+      mentionUsers: ""
+      mentionGroups: ""

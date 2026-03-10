@@ -1,0 +1,322 @@
+apiVersion: 1
+groups:
+    - orgId: 1
+      name: interver
+      folder: 모니터링
+      interval: 10s
+      rules:
+        - uid: dectjtpu5zqwwe
+          title: Spring boot 서버 상태
+          condition: B
+          data:
+            - refId: A
+              relativeTimeRange:
+                from: 600
+                to: 0
+              datasourceUid: prometheus
+              model:
+                disableTextWrap: false
+                editorMode: builder
+                expr: up{job="spring-actuator"}
+                fullMetaSearch: false
+                includeNullMetadata: true
+                instant: true
+                intervalMs: 1000
+                legendFormat: __auto
+                maxDataPoints: 43200
+                range: false
+                refId: A
+                useBackend: false
+            - refId: B
+              datasourceUid: __expr__
+              model:
+                conditions:
+                    - evaluator:
+                        params:
+                            - 0
+                            - 0
+                        type: gt
+                      operator:
+                        type: and
+                      query:
+                        params: []
+                      reducer:
+                        params: []
+                        type: avg
+                      type: query
+                datasource:
+                    name: Expression
+                    type: __expr__
+                    uid: __expr__
+                expression: ${A} == 0
+                intervalMs: 1000
+                maxDataPoints: 43200
+                refId: B
+                type: math
+          noDataState: NoData
+          execErrState: Error
+          for: 20s
+          annotations:
+            summary: 서버가 종료되었습니다.
+          isPaused: false
+          notification_settings:
+            receiver: Slack Alert
+        - uid: cecw2qxmza7lse
+          title: CPU 90% 초과
+          condition: C
+          data:
+            - refId: A
+              relativeTimeRange:
+                from: 600
+                to: 0
+              datasourceUid: prometheus
+              model:
+                editorMode: code
+                expr: system_cpu_usage
+                instant: true
+                intervalMs: 1000
+                legendFormat: __auto
+                maxDataPoints: 43200
+                range: false
+                refId: A
+            - refId: C
+              datasourceUid: __expr__
+              model:
+                conditions:
+                    - evaluator:
+                        params:
+                            - 90
+                        type: gt
+                      operator:
+                        type: and
+                      query:
+                        params:
+                            - C
+                      reducer:
+                        params: []
+                        type: last
+                      type: query
+                datasource:
+                    type: __expr__
+                    uid: __expr__
+                expression: A
+                intervalMs: 1000
+                maxDataPoints: 43200
+                refId: C
+                type: threshold
+          noDataState: KeepLast
+          execErrState: KeepLast
+          for: 20s
+          annotations:
+            summary: CPU 사용량 90% 초과
+          isPaused: false
+          notification_settings:
+            receiver: Slack Alert
+        - uid: aecw49rs1d91ca
+          title: JVM Heap Memory 90% 초과
+          condition: C
+          data:
+            - refId: A
+              relativeTimeRange:
+                from: 600
+                to: 0
+              datasourceUid: prometheus
+              model:
+                editorMode: code
+                expr: sum(jvm_memory_used_bytes{area="heap"})*100/sum(jvm_memory_max_bytes{ area="heap"})
+                instant: true
+                intervalMs: 1000
+                legendFormat: __auto
+                maxDataPoints: 43200
+                range: false
+                refId: A
+            - refId: C
+              datasourceUid: __expr__
+              model:
+                conditions:
+                    - evaluator:
+                        params:
+                            - 90
+                        type: gt
+                      operator:
+                        type: and
+                      query:
+                        params:
+                            - C
+                      reducer:
+                        params: []
+                        type: last
+                      type: query
+                datasource:
+                    type: __expr__
+                    uid: __expr__
+                expression: A
+                intervalMs: 1000
+                maxDataPoints: 43200
+                refId: C
+                type: threshold
+          noDataState: KeepLast
+          execErrState: KeepLast
+          for: 20s
+          annotations:
+            summary: JVM Heap Memory 90% 초과
+          isPaused: false
+          notification_settings:
+            receiver: Slack Alert
+        - uid: fecw4dmzt54owe
+          title: JVM NonHeap Memory 90% 초과
+          condition: C
+          data:
+            - refId: A
+              relativeTimeRange:
+                from: 600
+                to: 0
+              datasourceUid: prometheus
+              model:
+                editorMode: code
+                expr: sum(jvm_memory_used_bytes{area="nonheap"})*100/sum(jvm_memory_max_bytes{area="nonheap"})
+                instant: true
+                intervalMs: 1000
+                legendFormat: __auto
+                maxDataPoints: 43200
+                range: false
+                refId: A
+            - refId: C
+              datasourceUid: __expr__
+              model:
+                conditions:
+                    - evaluator:
+                        params:
+                            - 90
+                        type: gt
+                      operator:
+                        type: and
+                      query:
+                        params:
+                            - C
+                      reducer:
+                        params: []
+                        type: last
+                      type: query
+                datasource:
+                    type: __expr__
+                    uid: __expr__
+                expression: A
+                intervalMs: 1000
+                maxDataPoints: 43200
+                refId: C
+                type: threshold
+          noDataState: KeepLast
+          execErrState: KeepLast
+          for: 20s
+          annotations:
+            summary: JVM NonHeap Memory 90% 초과
+          isPaused: false
+          notification_settings:
+            receiver: Slack Alert
+        - uid: cecw6qlrqzsaoa
+          title: 커넥션 풀 사용량 임박(최대 10개)
+          condition: C
+          data:
+            - refId: A
+              relativeTimeRange:
+                from: 600
+                to: 0
+              datasourceUid: prometheus
+              model:
+                disableTextWrap: false
+                editorMode: code
+                expr: hikaricp_connections_active
+                fullMetaSearch: false
+                includeNullMetadata: true
+                instant: true
+                intervalMs: 1000
+                legendFormat: __auto
+                maxDataPoints: 43200
+                range: false
+                refId: A
+                useBackend: false
+            - refId: C
+              datasourceUid: __expr__
+              model:
+                conditions:
+                    - evaluator:
+                        params:
+                            - 8
+                        type: gt
+                      operator:
+                        type: and
+                      query:
+                        params:
+                            - C
+                      reducer:
+                        params: []
+                        type: last
+                      type: query
+                datasource:
+                    type: __expr__
+                    uid: __expr__
+                expression: A
+                intervalMs: 1000
+                maxDataPoints: 43200
+                refId: C
+                type: threshold
+          noDataState: KeepLast
+          execErrState: KeepLast
+          for: 20s
+          annotations:
+            summary: 커넥션 풀 사용량 임박(최대 10개)
+          isPaused: false
+          notification_settings:
+            receiver: Slack Alert
+        - uid: fecw788hpnmrkb
+          title: 에러로그 급증
+          condition: C
+          data:
+            - refId: A
+              relativeTimeRange:
+                from: 600
+                to: 0
+              datasourceUid: prometheus
+              model:
+                editorMode: code
+                expr: 'irate(logback_events_total{level="error"}[5m]) '
+                instant: true
+                intervalMs: 1000
+                legendFormat: __auto
+                maxDataPoints: 43200
+                range: false
+                refId: A
+            - refId: C
+              datasourceUid: __expr__
+              model:
+                conditions:
+                    - evaluator:
+                        params:
+                            - 5
+                        type: gt
+                      operator:
+                        type: and
+                      query:
+                        params:
+                            - C
+                      reducer:
+                        params: []
+                        type: last
+                      type: query
+                datasource:
+                    type: __expr__
+                    uid: __expr__
+                expression: A
+                intervalMs: 1000
+                maxDataPoints: 43200
+                refId: C
+                type: threshold
+          noDataState: KeepLast
+          execErrState: KeepLast
+          for: 20s
+          annotations:
+            summary: 에러로그 급증 - 최근 5분간의 error 로그 증가율이 초당 5건 이상
+          isPaused: false
+          notification_settings:
+            receiver: Slack Alert

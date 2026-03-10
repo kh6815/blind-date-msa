@@ -25,6 +25,10 @@ dependencies {
 	// AOP 로그 수집에서 JSON 형태 Map 정렬을 위함
 	implementation 'com.google.code.gson:gson:2.8.6'
 
+	// 모니터링
+	implementation 'org.springframework.boot:spring-boot-starter-actuator'
+	implementation 'io.micrometer:micrometer-registry-prometheus'
+
 	compileOnly 'org.projectlombok:lombok'
 	annotationProcessor 'org.projectlombok:lombok'
 

@@ -1,0 +1,115 @@
+// =========================
+// Loki write 설정
+// =========================
+loki.write "default" {
+  endpoint {
+    url = "http://loki:3100/loki/api/v1/push"
+  }
+}
+
+// =========================
+// 파일 수집
+// =========================
+local.file_match "spring_boot_logs" {
+  path_targets = [
+    {
+      __path__ = "/var/log/app/*.log",
+      job      = "mobins-platform",
+    },
+  ]
+}
+
+// =========================
+// 로그 source
+// =========================
+loki.source.file "spring_boot" {
+  targets    = local.file_match.spring_boot_logs.targets
+  forward_to = [loki.process.spring_boot.receiver]
+}
+
+// =========================
+// 파이프라인 처리
+// =========================
+loki.process "spring_boot" {
+
+  // 멀티라인 처리
+  stage.multiline {
+    firstline     = "^\\d{4}-\\d{2}-\\d{2}"
+    max_wait_time = "3s"
+  }
+
+  // // JSON 파싱
+  //stage.json {
+  //  expressions = {
+  //    ts      = "timestamp",
+  //	ip 	  = "mdc_ipAddress",
+  //	traceId = "mdc_traceId",
+  //	url	  = "message_request_url",
+  //    level   = "level",
+  //    thread  = "thread",
+  //    logger  = "logger",
+  //  }
+  //}
+
+  // JSON 파싱
+  stage.json {
+    expressions = {
+      ts    = "timestamp",
+      level = "level",
+	  logger = "logger",
+	  message = "message",
+    }
+  }
+  
+  // logger를 label로 승격
+  stage.labels {
+	values = {
+      logger = "",
+	}
+  }
+  
+  stage.json {
+	source = "message"
+    expressions = {
+	  request = "request",
+    }
+  }
+  
+  stage.json {
+	source = "request"
+    expressions = {
+	  reqAt = "requestAt",
+    }
+  }
+
+  // 1️. CUSTOM_LOGGER 인 경우
+  stage.match {
+    selector = "{logger=\"CUSTOM_LOGGER\"}"
+	
+    stage.timestamp {
+      source   = "reqAt"
+	  format   = "2006-01-02T15:04:05.999999999Z"
+      location = "Asia/Seoul"
+    }
+  }
+
+  // 2. 나머지 로그
+  stage.match {
+    selector = "{logger!=\"CUSTOM_LOGGER\"}"
+	
+    stage.timestamp {
+      source   = "ts"
+      format   = "2006-01-02 15:04:05.000"
+      location = "Asia/Seoul"
+    }
+  }
+
+  // timestamp 변환 (Seoul 기준)
+  //stage.timestamp {
+  //  source   = "ts"
+  //  format   = "2006-01-02 15:04:05.000"
+  //  location = "Asia/Seoul"
+  //}
+
+  forward_to = [loki.write.default.receiver]
+}

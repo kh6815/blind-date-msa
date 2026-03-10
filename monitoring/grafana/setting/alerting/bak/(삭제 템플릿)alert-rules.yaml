@@ -1,0 +1,15 @@
+apiVersion: 1
+
+deleteRules:
+  - orgId: 1
+    uid: dectjtpu5zqwwe   # Spring boot 서버 상태
+  - orgId: 1
+    uid: cecw2qxmza7lse   # CPU 90% 초과
+  - orgId: 1
+    uid: aecw49rs1d91ca   # JVM Heap Memory 90% 초과
+  - orgId: 1
+    uid: fecw4dmzt54owe   # JVM NonHeap Memory 90% 초과
+  - orgId: 1
+    uid: cecw6qlrqzsaoa   # 커넥션 풀 사용량 임박
+  - orgId: 1
+    uid: fecw788hpnmrkb   # 에러로그 급증

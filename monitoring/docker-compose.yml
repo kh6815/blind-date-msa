@@ -1,0 +1,157 @@
+services:
+  #######################################################################################################
+  # # 1. Filebeat (로그 파일 수집기)
+  # filebeat:
+  #  image: docker.elastic.co/beats/filebeat:7.10.0
+  #  container_name: filebeat
+  #  # user: root
+  #  command: filebeat -e -strict.perms=false
+  #  volumes:
+  #    - ./filebeat/config/filebeat.yml:/usr/share/filebeat/filebeat.yml:ro # 로컬의 filebeat.yml 사용
+  #    - D:/Document/mobins/platform/app/api/logs:/var/log/platform:ro  # host의 수집 로그 폴더 마운트
+  #    # - /var/lib/docker/containers:/var/lib/docker/containers:ro # Docker 로그 수집 (옵션)
+  #    # - /var/log:/var/log:ro # 호스트 로그 수집 (옵션)
+  #  networks:
+  #    - monitoring
+  #  depends_on:
+  #    - logstash
+  #    - elasticsearch
+  #  restart: unless-stopped
+
+  # # 2. Elasticsearch (로그 저장소)      
+  # elasticsearch:
+  #   image: docker.elastic.co/elasticsearch/elasticsearch:7.10.0
+  #   container_name: elasticsearch
+  #   volumes:
+  #     - ./elasticsearch/config/elasticsearch.yml:/usr/share/elasticsearch/config/elasticsearch.yml:ro,Z
+  #     - ./elasticsearch/data:/usr/share/elasticsearch/data:Z # 로컬에 저장 하도록 수정 - 컨테이너를 삭제해도 유지됨.
+  #   ports:
+  #     - 9200:9200
+  #   environment:
+  #     node.name: elasticsearch
+  #     ES_JAVA_OPTS: -Xms512m -Xmx512m
+  #     discovery.type: single-node
+  #   networks:
+  #     - monitoring
+  #   restart: unless-stopped
+    
+  # # 3. Logstash (로그 수집기)
+  # logstash:
+  #   image: docker.elastic.co/logstash/logstash:7.10.0
+  #   container_name: logstash
+  #   volumes:
+  #     - ./logstash/config/logstash.yml:/usr/share/logstash/config/logstash.yml:ro,Z
+  #     - ./logstash/pipeline:/usr/share/logstash/pipeline:ro,Z
+  #   ports:
+  #     - 5044:5044  # filebeat
+  #     # - 50000:50000/tcp
+  #   environment:
+  #     LS_JAVA_OPTS: -Xms256m -Xmx256m
+  #   networks:
+  #     - monitoring
+  #   depends_on:
+  #     - elasticsearch
+  #   restart: unless-stopped  
+
+  # # 4. Kibana (로그 조회 UI)
+  # kibana:
+  #   image: docker.elastic.co/kibana/kibana:7.10.0
+  #   container_name: kibana
+  #   environment:
+  #     ELASTICSEARCH_HOSTS: http://elasticsearch:9200
+  #   ports:
+  #     - "5601:5601"
+  #   depends_on:
+  #     - elasticsearch
+  #   networks:
+  #     - monitoring
+  #   restart: unless-stopped
+  #######################################################################################################
+  
+  # 1. Prometheus (메트릭 수집기)
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    volumes:
+      - ./prometheus/config/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    ports:
+      - "9090:9090"
+    networks:
+      - monitoring
+    restart: unless-stopped  
+    
+  # 2. Promtail + loki 사용자 로그 수집기
+#  promtail:
+#    image: grafana/promtail:3.5.0
+#    container_name: promtail
+#    #environment:
+#    #  - TZ=Asia/Seoul
+#    volumes:
+#      - ./promtail/config/promtail.yml:/etc/promtail/config.yml
+#      - platform-logs:/var/log/app   # WAS 로그 디렉토리 경로 설정
+#    command: -config.file=/etc/promtail/config.yml
+#    depends_on:
+#      - loki
+#    networks:
+#      - monitoring
+#    restart: unless-stopped
+
+  alloy:
+    image: grafana/alloy:latest
+    container_name: alloy
+    ports:
+      - "12345:12345"
+    volumes:
+      - ./alloy/config/config.alloy:/etc/alloy/config.alloy
+      - platform-logs:/var/log/app
+      #- ./alloy/positions:/tmp/positions   # position 저장용
+      - ./alloy/data:/var/lib/alloy/data
+    command: run /etc/alloy/config.alloy
+    depends_on:
+      - loki
+    networks:
+      - monitoring
+    restart: unless-stopped
+
+  loki:
+    image: grafana/loki:3.5.1
+    container_name: loki
+    #environment:
+    #  - TZ=Asia/Seoul
+    ports:
+      - "3100:3100"
+    command: -config.file=/etc/loki/loki.yml
+    volumes:
+      - ./loki/config:/etc/loki
+      - ./loki/data:/loki
+    networks:
+      - monitoring
+    restart: unless-stopped
+
+  # 3. Grafana (모니터링 대시보드)
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    volumes:
+      - ./grafana/data:/var/lib/grafana
+      #- ./grafana/setting/alerting:/etc/grafana/provisioning/alerting
+      #- ./grafana/setting/dashboards:/etc/grafana/provisioning/dashboards
+      #- ./grafana/setting/datasources:/etc/grafana/provisioning/datasources
+      #- ./grafana/setting/notifiers:/etc/grafana/provisioning/notifiers
+    depends_on:
+      #- loki
+      - prometheus
+      #- elasticsearch
+    ports:
+      - "4000:3000"
+    environment:
+#      - TZ=Asia/Seoul
+      - GF_SERVER_ROOT_URL=http://grafana.mobins.co.kr
+      - GF_SERVER_SERVE_FROM_SUB_PATH=false
+    networks:
+      - monitoring
+    restart: unless-stopped
+
+networks:
+  monitoring:
+    driver: bridge
