@@ -16,6 +16,7 @@ import org.springframework.web.util.ContentCachingResponseWrapper;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.Enumeration;
@@ -113,7 +114,7 @@ public class RequestLoggingFilter extends OncePerRequestFilter {
                 .headers(extractResponseHeaders(response))
                 .body(extractResponseBody(response))
                 .bodySize(response.getContentSize())
-                .elapseTime(java.time.Duration.between(requestAt, responseAt).toMillis())
+                .elapseTime(Duration.between(requestAt, responseAt).toMillis())
                 .responseAt(formatToIsoUtc(responseAt))
                 .build();
     }
