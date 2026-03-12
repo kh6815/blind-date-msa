@@ -107,18 +107,44 @@ services:
           - chat.blind-date.com
           - minio.blind-date.com
 
+  # Prometheus (메트릭 수집기)
   prometheus:
     image: prom/prometheus:latest
     container_name: prometheus
     volumes:
       - ./monitoring/prometheus/config/prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - ./monitoring/prometheus/data:/prometheus
-#    ports:
-#      - "9090:9090"
     restart: unless-stopped
     networks:
       - app-net
 
+  # alloy 로그 수집기
+  alloy:
+    image: grafana/alloy:latest
+    container_name: alloy
+    volumes:
+      - ./monitoring/alloy/config/config.alloy:/etc/alloy/config.alloy
+      - ./logs:/var/log/app
+      - ./monitoring/alloy/data:/var/lib/alloy/data
+    command: run /etc/alloy/config.alloy
+    depends_on:
+      - loki
+    networks:
+      - app-net
+    restart: unless-stopped
+
+  loki:
+    image: grafana/loki:3.5.1
+    container_name: loki
+    command: -config.file=/etc/loki/loki.yml
+    volumes:
+      - ./monitoring/loki/config:/etc/loki
+      - ./monitoring/loki/data:/loki
+    networks:
+      - app-net
+    restart: unless-stopped
+
+  # Grafana (모니터링 대시보드)
   grafana:
     image: grafana/grafana:latest
     container_name: grafana
@@ -126,6 +152,7 @@ services:
       - ./monitoring/grafana/data:/var/lib/grafana
     depends_on:
       - prometheus
+      - loki
     ports:
       - "4000:3000"
 #    environment:

@@ -13,8 +13,8 @@ loki.write "default" {
 local.file_match "spring_boot_logs" {
   path_targets = [
     {
-      __path__ = "/var/log/app/*.log",
-      job      = "mobins-platform",
+      __path__ = "/var/log/app/*/*.log",
+      job      = "blind-date",
     },
   ]
 }
@@ -37,19 +37,6 @@ loki.process "spring_boot" {
     firstline     = "^\\d{4}-\\d{2}-\\d{2}"
     max_wait_time = "3s"
   }
-
-  // // JSON 파싱
-  //stage.json {
-  //  expressions = {
-  //    ts      = "timestamp",
-  //	ip 	  = "mdc_ipAddress",
-  //	traceId = "mdc_traceId",
-  //	url	  = "message_request_url",
-  //    level   = "level",
-  //    thread  = "thread",
-  //    logger  = "logger",
-  //  }
-  //}
 
   // JSON 파싱
   stage.json {
@@ -82,7 +69,7 @@ loki.process "spring_boot" {
     }
   }
 
-  // 1️. CUSTOM_LOGGER 인 경우
+  // 1. CUSTOM_LOGGER 인 경우
   stage.match {
     selector = "{logger=\"CUSTOM_LOGGER\"}"
 	
@@ -103,13 +90,6 @@ loki.process "spring_boot" {
       location = "Asia/Seoul"
     }
   }
-
-  // timestamp 변환 (Seoul 기준)
-  //stage.timestamp {
-  //  source   = "ts"
-  //  format   = "2006-01-02 15:04:05.000"
-  //  location = "Asia/Seoul"
-  //}
 
   forward_to = [loki.write.default.receiver]
 }
