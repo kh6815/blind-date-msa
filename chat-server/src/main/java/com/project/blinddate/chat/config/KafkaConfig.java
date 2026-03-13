@@ -1,6 +1,7 @@
 package com.project.blinddate.chat.config;
 
 import com.project.blinddate.chat.dto.ChatMessageEvent;
+import org.apache.kafka.clients.admin.NewTopic;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.serialization.StringDeserializer;
@@ -9,6 +10,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.kafka.config.ConcurrentKafkaListenerContainerFactory;
+import org.springframework.kafka.config.TopicBuilder;
 import org.springframework.kafka.core.*;
 import org.springframework.kafka.listener.DeadLetterPublishingRecoverer;
 import org.springframework.kafka.listener.DefaultErrorHandler;
@@ -39,6 +41,22 @@ public class KafkaConfig {
      * @return ProducerFactory<String, String>
      */
     @Bean
+    public NewTopic chatMessageSaveTopic() {
+        return TopicBuilder.name("chat-message-save")
+                .partitions(3)
+                .replicas(3)
+                .build();
+    }
+
+    @Bean
+    public NewTopic chatMessageSaveDltTopic() {
+        return TopicBuilder.name("chat-message-save.DLT")
+                .partitions(3)
+                .replicas(3)
+                .build();
+    }
+
+    @Bean
     public ProducerFactory<String, String> stringProducerFactory(
             @Value("${spring.kafka.bootstrap-servers}") String bootstrapServers
     ) {
@@ -46,6 +64,7 @@ public class KafkaConfig {
         props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
         props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
         props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
+        props.put(ProducerConfig.ACKS_CONFIG, "all");
         return new DefaultKafkaProducerFactory<>(props);
     }
 
@@ -82,6 +101,7 @@ public class KafkaConfig {
         props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
         props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
         props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, JsonSerializer.class);
+        props.put(ProducerConfig.ACKS_CONFIG, "all");
         return new DefaultKafkaProducerFactory<>(props);
     }
 
