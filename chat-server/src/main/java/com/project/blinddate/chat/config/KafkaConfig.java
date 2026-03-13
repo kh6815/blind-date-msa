@@ -10,8 +10,11 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.kafka.config.ConcurrentKafkaListenerContainerFactory;
 import org.springframework.kafka.core.*;
+import org.springframework.kafka.listener.DeadLetterPublishingRecoverer;
+import org.springframework.kafka.listener.DefaultErrorHandler;
 import org.springframework.kafka.support.serializer.JsonDeserializer;
 import org.springframework.kafka.support.serializer.JsonSerializer;
+import org.springframework.util.backoff.FixedBackOff;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -133,10 +136,17 @@ public class KafkaConfig {
      */
     @Bean
     public ConcurrentKafkaListenerContainerFactory<String, ChatMessageEvent> chatMessageKafkaListenerContainerFactory(
-            ConsumerFactory<String, ChatMessageEvent> chatMessageConsumerFactory
+            ConsumerFactory<String, ChatMessageEvent> chatMessageConsumerFactory,
+            KafkaTemplate<String, ChatMessageEvent> chatMessageKafkaTemplate
     ) {
         ConcurrentKafkaListenerContainerFactory<String, ChatMessageEvent> factory = new ConcurrentKafkaListenerContainerFactory<>();
         factory.setConsumerFactory(chatMessageConsumerFactory);
+
+        // 실패 메시지는 chat-message-save.DLT 토픽으로 전송, 최대 3회 1초 간격 재시도
+        DeadLetterPublishingRecoverer recoverer = new DeadLetterPublishingRecoverer(chatMessageKafkaTemplate);
+        DefaultErrorHandler errorHandler = new DefaultErrorHandler(recoverer, new FixedBackOff(1000L, 3));
+        factory.setCommonErrorHandler(errorHandler);
+
         return factory;
     }
 }

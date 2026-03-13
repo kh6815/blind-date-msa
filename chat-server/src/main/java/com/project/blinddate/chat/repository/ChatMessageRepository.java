@@ -6,6 +6,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.mongodb.repository.MongoRepository;
 
 import java.util.List;
+import java.util.Optional;
 
 public interface ChatMessageRepository extends MongoRepository<ChatMessage, String> {
 
@@ -15,6 +16,9 @@ public interface ChatMessageRepository extends MongoRepository<ChatMessage, Stri
 
     // 전체 메시지 조회용
     List<ChatMessage> findByRoomIdOrderBySentAtAsc(String roomId);
+
+    // 마지막 메시지 단건 조회
+    Optional<ChatMessage> findTop1ByRoomIdOrderBySentAtDesc(String roomId);
 }
 
 

@@ -87,9 +87,13 @@ public class UserInfoCacheService {
     public void handleUserInfoUpdated(String message) {
         try {
             ChatUserInfoResponse userInfo = objectMapper.readValue(message, ChatUserInfoResponse.class);
+            if (userInfo.userId == null) {
+                log.warn("Received user-info-updated event with null userId, skipping: {}", message);
+                return;
+            }
             String cacheKey = USER_INFO_CACHE_PREFIX + userInfo.userId;
             String cacheValue = objectMapper.writeValueAsString(userInfo);
-            
+
             redisTemplate.opsForValue().set(cacheKey, cacheValue, CACHE_TTL_HOURS, TimeUnit.HOURS);
             log.debug("User info cache updated: userId={}", userInfo.userId);
         } catch (Exception e) {

@@ -3,6 +3,8 @@ package com.project.blinddate.user.repository;
 import com.project.blinddate.user.domain.User;
 import com.project.blinddate.user.dto.UserSearchCondition;
 import com.querydsl.core.types.dsl.BooleanExpression;
+import com.querydsl.core.types.dsl.Expressions;
+import com.querydsl.core.types.dsl.NumberTemplate;
 import com.querydsl.jpa.impl.JPAQuery;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import lombok.RequiredArgsConstructor;
@@ -105,6 +107,44 @@ class UserRepositoryImpl implements UserRepositoryQuery {
             predicate = predicate == null ? maxCondition : predicate.and(maxCondition);
         }
         return predicate;
+    }
+
+    @Override
+    public Page<User> searchUsersSortedByDistance(UserSearchCondition condition, double lat, double lon, Pageable pageable) {
+        NumberTemplate<Double> distanceExpr = Expressions.numberTemplate(Double.class,
+                "ST_Distance_Sphere(POINT({0}, {1}), POINT({2}, {3}))",
+                user.longitude, user.latitude, lon, lat);
+
+        List<User> content = queryFactory
+                .selectFrom(user)
+                .where(
+                        user.latitude.isNotNull(),
+                        user.longitude.isNotNull(),
+                        genderEq(condition.getGender()),
+                        mbtiEq(condition.getMbti()),
+                        locationEq(condition.getLocation()),
+                        jobEq(condition.getJob()),
+                        ageBetween(condition.getMinAge(), condition.getMaxAge())
+                )
+                .orderBy(distanceExpr.asc())
+                .offset(pageable.getOffset())
+                .limit(pageable.getPageSize())
+                .fetch();
+
+        JPAQuery<Long> countQuery = queryFactory
+                .select(user.count())
+                .from(user)
+                .where(
+                        user.latitude.isNotNull(),
+                        user.longitude.isNotNull(),
+                        genderEq(condition.getGender()),
+                        mbtiEq(condition.getMbti()),
+                        locationEq(condition.getLocation()),
+                        jobEq(condition.getJob()),
+                        ageBetween(condition.getMinAge(), condition.getMaxAge())
+                );
+
+        return PageableExecutionUtils.getPage(content, pageable, countQuery::fetchOne);
     }
 
     private BooleanExpression interestsContainsAny(List<String> interests) {

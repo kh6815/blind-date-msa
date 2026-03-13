@@ -12,8 +12,6 @@ import com.project.blinddate.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
@@ -23,6 +21,7 @@ import org.springframework.util.StringUtils;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
+
 
 @Service
 @RequiredArgsConstructor
@@ -106,59 +105,34 @@ public class UserService {
             return searchUsers(condition, pageable);
         }
 
-        // Fetch all users matching condition (limit 1000 for safety)
-        Pageable largePage = PageRequest.of(0, 1000);
-        Page<User> userPage = userRepository.searchUsers(condition, largePage);
+        double lat = currentUser.getLatitude();
+        double lon = currentUser.getLongitude();
 
-        List<UserResponse> sortedUsers = userPage.getContent().stream()
+        return userRepository.searchUsersSortedByDistance(condition, lat, lon, pageable)
                 .map(user -> {
-                    UserResponse response = userMapper.toResponse(user);
-                    response.setIsOnline(isUserOnline(response.getId()));
-
-                    if (user.getLatitude() != null && user.getLongitude() != null) {
-                        double dist = calculateDistance(
-                                currentUser.getLatitude(), currentUser.getLongitude(),
-                                user.getLatitude(), user.getLongitude()
-                        );
-                        return UserResponse.builder()
-                                .id(response.getId())
-                                .email(response.getEmail())
-                                .nickname(response.getNickname())
-                                .gender(response.getGender())
-                                .birthDate(response.getBirthDate())
-                                .mbti(response.getMbti())
-                                .interests(response.getInterests())
-                                .profileImageUrl(response.getProfileImageUrl())
-                                .imageUrls(response.getImageUrls())
-                                .job(response.getJob())
-                                .description(response.getDescription())
-                                .location(response.getLocation())
-                                .latitude(response.getLatitude())
-                                .longitude(response.getLongitude())
-                                .distance(dist)
-                                .isOnline(isUserOnline(response.getId()))
-                                .build();
-                    }
-                    return response;
-                })
-                .sorted((u1, u2) -> {
-                    if (u1.getDistance() == null && u2.getDistance() == null) return u1.getId().compareTo(u2.getId());
-                    if (u1.getDistance() == null) return 1;
-                    if (u2.getDistance() == null) return -1;
-                    int distCompare = u1.getDistance().compareTo(u2.getDistance());
-                    if (distCompare != 0) return distCompare;
-                    return u1.getId().compareTo(u2.getId());
-                })
-                .collect(Collectors.toList());
-
-        int start = (int) pageable.getOffset();
-        int end = Math.min((start + pageable.getPageSize()), sortedUsers.size());
-
-        if (start > sortedUsers.size()) {
-            return new PageImpl<>(List.of(), pageable, sortedUsers.size());
-        }
-
-        return new PageImpl<>(sortedUsers.subList(start, end), pageable, sortedUsers.size());
+                    double dist = (user.getLatitude() != null && user.getLongitude() != null)
+                            ? calculateDistance(lat, lon, user.getLatitude(), user.getLongitude())
+                            : 0.0;
+                    UserResponse base = userMapper.toResponse(user);
+                    return UserResponse.builder()
+                            .id(base.getId())
+                            .email(base.getEmail())
+                            .nickname(base.getNickname())
+                            .gender(base.getGender())
+                            .birthDate(base.getBirthDate())
+                            .mbti(base.getMbti())
+                            .interests(base.getInterests())
+                            .profileImageUrl(base.getProfileImageUrl())
+                            .imageUrls(base.getImageUrls())
+                            .job(base.getJob())
+                            .description(base.getDescription())
+                            .location(base.getLocation())
+                            .latitude(base.getLatitude())
+                            .longitude(base.getLongitude())
+                            .distance(dist)
+                            .isOnline(isUserOnline(base.getId()))
+                            .build();
+                });
     }
 
     private double calculateDistance(double lat1, double lon1, double lat2, double lon2) {

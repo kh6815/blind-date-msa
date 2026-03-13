@@ -1,6 +1,8 @@
 package com.project.blinddate.chat.repository;
 
 import com.project.blinddate.chat.domain.ChatRoom;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.mongodb.repository.MongoRepository;
 import org.springframework.data.mongodb.repository.Query;
 
@@ -13,6 +15,8 @@ public interface ChatRoomRepository extends MongoRepository<ChatRoom, String> {
     Optional<ChatRoom> findByParticipants(List<Long> participantUserIds, int size);
 
     List<ChatRoom> findByParticipantUserIdsContains(Long userId);
+
+    Page<ChatRoom> findByParticipantUserIdsContains(Long userId, Pageable pageable);
 }
 
 

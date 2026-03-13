@@ -154,17 +154,12 @@ public class ChatService {
 
     @Transactional(readOnly = true)
     public Page<ChatRoomResponse> getRoomsByUser(Long userId, Pageable pageable) {
-        List<ChatRoom> rooms = chatRoomRepository.findByParticipantUserIdsContains(userId);
+        Page<ChatRoom> roomPage = chatRoomRepository.findByParticipantUserIdsContains(userId, pageable);
 
-        int start = (int) pageable.getOffset();
-        int end = Math.min(start + pageable.getPageSize(), rooms.size());
-
-        List<ChatRoomResponse> content = rooms.subList(start, end).stream().map(room -> {
+        List<ChatRoomResponse> content = roomPage.getContent().stream().map(room -> {
                     List<Long> participantUserIds = room.getParticipantUserIds() != null ? room.getParticipantUserIds() : Collections.emptyList();
-                    // 상대방 ID 추출 (본인 제외)
                     Long targetUserId = participantUserIds.stream().filter(id -> !id.equals(userId)).findFirst().orElse(null);
 
-                    // 유저 서버에서 상대방 정보 조회 (Kafka 기반)
                     String nickname = "상대방";
                     String imageUrl = null;
 
@@ -188,7 +183,7 @@ public class ChatService {
                 })
                 .collect(Collectors.toList());
 
-        return new PageImpl<>(content, pageable, rooms.size());
+        return new PageImpl<>(content, pageable, roomPage.getTotalElements());
     }
 
     @Transactional(readOnly = true)
@@ -222,18 +217,9 @@ public class ChatService {
     }
 
     private String getLastMessagePreview(ChatRoom room) {
-        String lastMessagePreview = "";
-        List<ChatMessage> messages = chatMessageRepository.findByRoomIdOrderBySentAtAsc(room.getId());
-        if (!messages.isEmpty()) {
-            ChatMessage lastMessage = messages.get(messages.size() - 1);
-            if (lastMessage.getType() == MessageType.IMAGE) {
-                lastMessagePreview = "이미지";
-            } else {
-                lastMessagePreview = lastMessage.getContent();
-            }
-        }
-
-        return lastMessagePreview;
+        return chatMessageRepository.findTop1ByRoomIdOrderBySentAtDesc(room.getId())
+                .map(msg -> msg.getType() == MessageType.IMAGE ? "이미지" : msg.getContent())
+                .orElse("");
     }
 
     /**

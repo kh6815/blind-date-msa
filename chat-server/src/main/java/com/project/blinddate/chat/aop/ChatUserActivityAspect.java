@@ -13,6 +13,7 @@ import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.annotation.Before;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.kafka.core.KafkaTemplate;
@@ -31,9 +32,13 @@ public class ChatUserActivityAspect {
 
     private final KafkaTemplate<String, String> kafkaTemplate;
 
+    @Value("${user.auth.key-prefix}")
+    private String USER_TOKEN_KEY_PREFIX;
+
     @Value("${external.user-server.url}")
     private String externalUserServerUrl;
 
+    private final StringRedisTemplate redisTemplate;
     private final UserFeignClient userFeignClient;
 
     @Around("@within(org.springframework.stereotype.Controller)")
@@ -50,7 +55,10 @@ public class ChatUserActivityAspect {
                 return "redirect:" + externalUserServerUrl + "/login";
             }
 
-            Long currentUserId = resolveUserIdViaUserServer(token);
+            Long currentUserId = resolveUserIdViaRedis(token);
+            if (currentUserId == null) {
+                return "redirect:" + externalUserServerUrl + "/login";
+            }
 
             for (int i = 0; i < args.length; i++) {
                 // ChatUserIdRequest 타입이면 교체
@@ -77,10 +85,15 @@ public class ChatUserActivityAspect {
             String token = resolveToken(request);
             if (token == null) {
                 return ResponseEntity
-                        .status(org.springframework.http.HttpStatus.UNAUTHORIZED)
-                        .body(com.project.blinddate.common.dto.ResponseDto.of(401, "unauthorized", null));
+                        .status(HttpStatus.UNAUTHORIZED)
+                        .body(ResponseDto.of(401, "unauthorized", null));
             }
-            Long currentUserId = resolveUserIdViaUserServer(token);
+            Long currentUserId = resolveUserIdViaRedis(token);
+            if (currentUserId == null) {
+                return ResponseEntity
+                        .status(HttpStatus.UNAUTHORIZED)
+                        .body(ResponseDto.of(401, "unauthorized", null));
+            }
             for (int i = 0; i < args.length; i++) {
                 if (args[i] instanceof ChatUserIdRequest) {
                     ChatUserIdRequest chatUserIdRequest = ChatUserIdRequest.builder()
@@ -115,17 +128,8 @@ public class ChatUserActivityAspect {
         return null;
     }
 
-    private Long resolveUserIdViaUserServer(String token) {
-        String authHeader = token.startsWith("Bearer ") ? token : "Bearer " + token;
-        try {
-            ResponseDto<Long> resp = userFeignClient.validateToken(authHeader);
-            if (resp != null && resp.getStatus() == 200 && resp.getData() != null) {
-                return resp.getData();
-            }
-        } catch (Exception e) {
-            log.error("JWT 토큰 인증 실패", e);
-            return null;
-        }
-        return null;
+    private Long resolveUserIdViaRedis(String token) {
+        String userId = redisTemplate.opsForValue().get(USER_TOKEN_KEY_PREFIX + token);
+        return userId != null ? Long.valueOf(userId) : null;
     }
 }

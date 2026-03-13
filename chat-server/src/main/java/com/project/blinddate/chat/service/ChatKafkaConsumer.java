@@ -16,11 +16,6 @@ public class ChatKafkaConsumer {
     @KafkaListener(topics = "chat-message-save", containerFactory = "chatMessageKafkaListenerContainerFactory")
     public void consume(ChatMessageEvent event) {
         log.info("Consumed message from Kafka: {}", event);
-        try {
-            chatService.saveMessage(event);
-        } catch (Exception e) {
-            log.error("Failed to save message: {}", event, e);
-            // 재시도 로직이나 DLQ 처리가 필요할 수 있음
-        }
+        chatService.saveMessage(event);
     }
 }
