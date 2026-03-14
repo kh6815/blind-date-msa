@@ -42,8 +42,8 @@ public class SecurityConfig {
                         "script-src 'self' 'unsafe-inline' https://code.jquery.com https://cdnjs.cloudflare.com; " +
                         "style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; " +
                         "font-src 'self' https://cdnjs.cloudflare.com; " +
-                        "img-src 'self' data: https://randomuser.me https://minio.blind-date.com https://minio.blind-date; " +
-                        "connect-src 'self' http://*.blind-date.com https://*.blind-date.com https://cdnjs.cloudflare.com;"
+                        "img-src 'self' data: https://randomuser.me https://minio.blind-date.* https://minio.blind-date; " +
+                        "connect-src 'self' http://*.blind-date.* https://*.blind-date.* https://cdnjs.cloudflare.com;"
                 ))
 
             )

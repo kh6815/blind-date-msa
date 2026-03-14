@@ -9,7 +9,7 @@ public class CorsConfig implements WebMvcConfigurer {
     @Override
     public void addCorsMappings(CorsRegistry registry) {
         registry.addMapping("/chats/**")
-                .allowedOriginPatterns("http://*.blind-date.com", "https://*.blind-date.com")
+                .allowedOriginPatterns("http://*.blind-date.*", "https://*.blind-date.*")
                 .allowedMethods("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS")
                 .allowedHeaders("Authorization", "Content-Type")
                 .allowCredentials(true)

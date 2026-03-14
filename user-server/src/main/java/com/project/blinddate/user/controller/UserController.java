@@ -47,7 +47,7 @@ public class UserController {
     }
 
     @Operation(summary = "유저 단건 조회", description = "유저 상세 정보를 조회합니다.")
-    @GetMapping("/{id}")
+    @GetMapping("/{id:\\d+}")
     public ResponseEntity<ResponseDto<UserResponse>> getUser(
             @PathVariable Long id
     ) {

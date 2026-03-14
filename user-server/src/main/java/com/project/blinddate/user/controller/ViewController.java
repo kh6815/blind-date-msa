@@ -185,7 +185,7 @@ public class ViewController {
         return "redirect:/login";
     }
 
-    @GetMapping("/users/{id}")
+    @GetMapping("/users/{id:\\d+}")
     public String userDetail(@PathVariable Long id, Model model, HttpServletRequest request) {
         UserResponse currentUser = resolveCurrentUser(request);
         if (currentUser == null) {
