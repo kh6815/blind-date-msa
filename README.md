@@ -11,25 +11,25 @@ https://user.blind-date.site
 ## 전체 아키텍처 개요
 
 `user-server`와 `chat-server`를 분리하고, Kafka 이벤트와 Redis·MongoDB·MySQL·MinIO를 활용해 **느슨한 결합 + 수평 확장**이 가능한 구조로 설계했습니다.
-![blind-date 아키텍처.jpg](img/blind-date%20%EC%95%84%ED%82%A4%ED%85%8D%EC%B2%98.jpg)
+![blind-date 아키텍처 도식화.jpg](blind-date%20%EC%95%84%ED%82%A4%ED%85%8D%EC%B2%98%20%EB%8F%84%EC%8B%9D%ED%99%94.jpg)
 
 ---
 
 ## 🛠 기술 스택
 
-| 구분 | 기술 | 용도 |
-|------|------|------|
-| **언어·프레임워크** | Java 17, Spring Boot 3.x | 백엔드 API·비즈니스 로직 |
-| **아키텍처** | MSA, 멀티 모듈(Gradle) | 유저 서버 / 채팅 서버 분리 |
-| **DB** | MySQL 8, MongoDB 7 | 유저·매칭(정합성) / 채팅 메시지(대량·유연 스키마) |
-| **캐시·메시지** | Redis 7, Apache Kafka | 세션·캐시·실시간성 / 서버 간 이벤트 비동기 전달 |
-| **파일 저장** | MinIO | 프로필·채팅 이미지 오브젝트 스토리지 |
-| **실시간 통신** | WebSocket (STOMP) | 채팅 실시간 송수신 |
-| **인증** | Spring Security, JWT | 로그인·API 인증 |
-| **검색·쿼리** | QueryDSL, Spring Data JPA | 복잡 조회·타입 세이프 쿼리 |
-| **API 문서** | Springdoc OpenAPI (Swagger) | API 명세·테스트 |
-| **인프라·배포** | Docker, Docker Compose, Nginx | 컨테이너화, HTTPS·로드밸런싱, 수평 확장 |
-| **모니터링·로깅** | Prometheus, Grafana, Loki, Alloy | 메트릭 수집·대시보드·로그 수집·통합 조회 |
+| 구분 | 기술 | 용도                                   |
+|------|------|--------------------------------------|
+| **언어·프레임워크** | Java 17, Spring Boot 3.x | 백엔드 API·비즈니스 로직                      |
+| **아키텍처** | MSA, 멀티 모듈(Gradle) | 유저 서버 / 채팅 서버 분리                     |
+| **DB** | MySQL 8, MongoDB 7 | 유저·매칭(정합성) / 채팅 메시지(대량·유연 스키마)       |
+| **캐시·메시지** | Redis 7, Apache Kafka | 세션·캐시·Pub/Sub·실시간성 / 서버 간 이벤트 비동기 전달 |
+| **파일 저장** | MinIO | 프로필·채팅 이미지 오브젝트 스토리지                 |
+| **실시간 통신** | WebSocket (STOMP) | 채팅 실시간 송수신                           |
+| **인증** | Spring Security, JWT | 로그인·API 인증                           |
+| **검색·쿼리** | QueryDSL, Spring Data JPA | 복잡 조회·타입 세이프 쿼리                      |
+| **API 문서** | Springdoc OpenAPI (Swagger) | API 명세·테스트                           |
+| **인프라·배포** | Docker, Docker Compose, Nginx | 컨테이너화, HTTPS·로드밸런싱, 수평 확장            |
+| **모니터링·로깅** | Prometheus, Grafana, Loki, Alloy | 메트릭 수집·대시보드·로그 수집·통합 조회              |
 
 
 - **루트 프로젝트 (`blind-date`)**
