@@ -430,8 +430,8 @@ services:
     depends_on:
       mysql-user:
         condition: service_started
-      redis-cluster-init:
-        condition: service_completed_successfully
+#      redis-cluster-init:
+#        condition: service_completed_successfully
       kafka-1:
         condition: service_healthy
       minio:
@@ -473,8 +473,8 @@ services:
     depends_on:
       mysql-user:
         condition: service_started
-      redis-cluster-init:
-        condition: service_completed_successfully
+#      redis-cluster-init:
+#        condition: service_completed_successfully
       kafka-1:
         condition: service_healthy
       minio:
@@ -510,8 +510,8 @@ services:
     depends_on:
       mongo-chat:
         condition: service_started
-      redis-cluster-init:
-        condition: service_completed_successfully
+#      redis-cluster-init:
+#        condition: service_completed_successfully
       kafka-1:
         condition: service_healthy
       minio:
@@ -543,8 +543,8 @@ services:
     depends_on:
       mongo-chat:
         condition: service_started
-      redis-cluster-init:
-        condition: service_completed_successfully
+#      redis-cluster-init:
+#        condition: service_completed_successfully
       kafka-1:
         condition: service_healthy
       minio:
