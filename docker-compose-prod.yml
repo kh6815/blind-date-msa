@@ -221,30 +221,30 @@ services:
   #redis-node-4:6379 redis-node-5:6379 redis-node-6:6379 \
   #--cluster-replicas 1
 
-#  redis-cluster-init:
-#    image: redis:7.2
-#    container_name: redis-cluster-init
-#    restart: "no"
-#    depends_on:
-#      redis-node-1:
-#        condition: service_healthy
-#      redis-node-2:
-#        condition: service_healthy
-#      redis-node-3:
-#        condition: service_healthy
-#      redis-node-4:
-#        condition: service_healthy
-#      redis-node-5:
-#        condition: service_healthy
-#      redis-node-6:
-#        condition: service_healthy
-#    command: >
-#      sh -c "redis-cli --cluster create
-#      redis-node-1:6379 redis-node-2:6379 redis-node-3:6379
-#      redis-node-4:6379 redis-node-5:6379 redis-node-6:6379
-#      --cluster-replicas 1 --cluster-yes"
-#    networks:
-#      - app-net
+  redis-cluster-init:
+    image: redis:7.2
+    container_name: redis-cluster-init
+    restart: "no"
+    depends_on:
+      redis-node-1:
+        condition: service_healthy
+      redis-node-2:
+        condition: service_healthy
+      redis-node-3:
+        condition: service_healthy
+      redis-node-4:
+        condition: service_healthy
+      redis-node-5:
+        condition: service_healthy
+      redis-node-6:
+        condition: service_healthy
+    command: >
+      sh -c "redis-cli --cluster create
+      redis-node-1:6379 redis-node-2:6379 redis-node-3:6379
+      redis-node-4:6379 redis-node-5:6379 redis-node-6:6379
+      --cluster-replicas 1 --cluster-yes"
+    networks:
+      - app-net
 
   # ── Kafka Cluster (3 broker) ──────────────────────────────────────────────
   zookeeper:
@@ -366,6 +366,7 @@ services:
           - user.blind-date.site
           - chat.blind-date.site
           - minio.blind-date.site
+          - grafana.blind-date.site
 
   # Prometheus (메트릭 수집기)
   prometheus:
@@ -414,9 +415,9 @@ services:
       - prometheus
       - loki
     ports:
-      - "4000:3000"
-#    environment:
-#      - GF_SERVER_ROOT_URL=http://grafana.blind-date.site
+      - "3000:3000"
+    environment:
+      - GF_SERVER_ROOT_URL=https://grafana.blind-date.site
 #      - GF_SERVER_SERVE_FROM_SUB_PATH=false
     restart: unless-stopped
     networks:
@@ -430,8 +431,8 @@ services:
     depends_on:
       mysql-user:
         condition: service_started
-#      redis-cluster-init:
-#        condition: service_completed_successfully
+      redis-cluster-init:
+        condition: service_completed_successfully
       kafka-1:
         condition: service_healthy
       minio:
@@ -461,7 +462,7 @@ services:
       start_period: 20s
     volumes:
       - ./user-server.jar:/app/user-server.jar
-      - ./logs/user-server-1:/app/logs
+      - ./logs/user-server-1:/logs
     networks:
       - app-net
 
@@ -473,8 +474,8 @@ services:
     depends_on:
       mysql-user:
         condition: service_started
-#      redis-cluster-init:
-#        condition: service_completed_successfully
+      redis-cluster-init:
+        condition: service_completed_successfully
       kafka-1:
         condition: service_healthy
       minio:
@@ -498,7 +499,7 @@ services:
       JWT_EXPIRATION: ${JWT_EXPIRATION:-86400000}
     volumes:
       - ./user-server.jar:/app/user-server.jar
-      - ./logs/user-server-2:/app/logs
+      - ./logs/user-server-2:/logs
     networks:
       - app-net
 
@@ -510,8 +511,8 @@ services:
     depends_on:
       mongo-chat:
         condition: service_started
-#      redis-cluster-init:
-#        condition: service_completed_successfully
+      redis-cluster-init:
+        condition: service_completed_successfully
       kafka-1:
         condition: service_healthy
       minio:
@@ -531,7 +532,7 @@ services:
       MINIO_BUCKET: ${MINIO_BUCKET_CHAT}
     volumes:
       - ./chat-server.jar:/app/chat-server.jar
-      - ./logs/chat-server-1:/app/logs
+      - ./logs/chat-server-1:/logs
     networks:
       - app-net
 
@@ -543,8 +544,8 @@ services:
     depends_on:
       mongo-chat:
         condition: service_started
-#      redis-cluster-init:
-#        condition: service_completed_successfully
+      redis-cluster-init:
+        condition: service_completed_successfully
       kafka-1:
         condition: service_healthy
       minio:
@@ -564,7 +565,7 @@ services:
       MINIO_BUCKET: ${MINIO_BUCKET_CHAT}
     volumes:
       - ./chat-server.jar:/app/chat-server.jar
-      - ./logs/chat-server-2:/app/logs
+      - ./logs/chat-server-2:/logs
     networks:
       - app-net
 
