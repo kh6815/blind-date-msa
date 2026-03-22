@@ -39,9 +39,34 @@ services:
     networks:
       - app-net
 
-  # ── Redis Cluster (3 master + 3 replica) ─────────────────────────────────
+  # ── Redis Single Instance ────────────────────────────────────────────────
+  redis:
+    image: redis:7.2
+    container_name: redis
+    restart: unless-stopped
+    logging: *default-logging
+    command: >
+      redis-server
+      --appendonly yes
+      --appendfsync everysec
+      --maxmemory 512mb
+      --maxmemory-policy allkeys-lru
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    networks:
+      - app-net
+
+  # ── Redis Cluster (3 master + 3 replica) - DISABLED ──────────────────────
   # command 복구 전략
-  #  ┌─────────────────────────────┬──────────┬──────────────────────────────────────────────┐                                                                                                                                           │            옵션             │    값    │                     의미                     │
+  #  ┌─────────────────────────────┬──────────┬──────────────────────────────────────────────┐
+  #  │            옵션             │    값    │                     의미                     │
   #  ├─────────────────────────────┼──────────┼──────────────────────────────────────────────┤
   #  │ appendfsync                 │ everysec │ 1초마다 AOF를 디스크에 flush (최대 1초 유실) │
   #  ├─────────────────────────────┼──────────┼──────────────────────────────────────────────┤
@@ -60,201 +85,189 @@ services:
   #  - 노드 재시작 → AOF로 최근 데이터 복구 (최대 1초 유실)
   #  - AOF 손상 시 → RDB 스냅샷으로 fallback
   #  - 클러스터 노드 장애 → replica가 master로 자동 승격
-  redis-node-1:
-    image: redis:7.2
-    container_name: redis-node-1
-    restart: unless-stopped
-    logging: *default-logging
-#    redis-server
-#    --port 6379
-#    --cluster-enabled yes
-#    --cluster-config-file nodes.conf
-#    --cluster-node-timeout 5000
-#    --appendonly yes
-#    --appendfsync everysec
-#    --auto-aof-rewrite-percentage 100
-#    --auto-aof-rewrite-min-size 64mb
-#    --save 900 1
-#    --save 300 10
-#    --save 60 10000
-    command: >
-      redis-server
-      --port 6379
-      --cluster-enabled yes
-      --cluster-config-file nodes.conf
-      --cluster-node-timeout 5000
-      --appendonly yes
-      --appendfsync everysec
-      --maxmemory 256mb
-      --maxmemory-policy allkeys-lru
-    volumes:
-      - redis-node-1-data:/data
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 5s
-      timeout: 3s
-      retries: 10
-    networks:
-      - app-net
+#  redis-node-1:
+#    image: redis:7.2
+#    container_name: redis-node-1
+#    restart: unless-stopped
+#    logging: *default-logging
+#    command: >
+#      redis-server
+#      --port 6379
+#      --cluster-enabled yes
+#      --cluster-config-file nodes.conf
+#      --cluster-node-timeout 5000
+#      --appendonly yes
+#      --appendfsync everysec
+#      --maxmemory 256mb
+#      --maxmemory-policy allkeys-lru
+#    volumes:
+#      - redis-node-1-data:/data
+#    healthcheck:
+#      test: ["CMD", "redis-cli", "ping"]
+#      interval: 5s
+#      timeout: 3s
+#      retries: 10
+#    networks:
+#      - app-net
+#
+#  redis-node-2:
+#    image: redis:7.2
+#    container_name: redis-node-2
+#    restart: unless-stopped
+#    logging: *default-logging
+#    command: >
+#      redis-server
+#      --port 6379
+#      --cluster-enabled yes
+#      --cluster-config-file nodes.conf
+#      --cluster-node-timeout 5000
+#      --appendonly yes
+#      --appendfsync everysec
+#      --maxmemory 256mb
+#      --maxmemory-policy allkeys-lru
+#    volumes:
+#      - redis-node-2-data:/data
+#    healthcheck:
+#      test: ["CMD", "redis-cli", "ping"]
+#      interval: 5s
+#      timeout: 3s
+#      retries: 10
+#    networks:
+#      - app-net
+#
+#  redis-node-3:
+#    image: redis:7.2
+#    container_name: redis-node-3
+#    restart: unless-stopped
+#    logging: *default-logging
+#    command: >
+#      redis-server
+#      --port 6379
+#      --cluster-enabled yes
+#      --cluster-config-file nodes.conf
+#      --cluster-node-timeout 5000
+#      --appendonly yes
+#      --appendfsync everysec
+#      --maxmemory 256mb
+#      --maxmemory-policy allkeys-lru
+#    volumes:
+#      - redis-node-3-data:/data
+#    healthcheck:
+#      test: ["CMD", "redis-cli", "ping"]
+#      interval: 5s
+#      timeout: 3s
+#      retries: 10
+#    networks:
+#      - app-net
+#
+#  redis-node-4:
+#    image: redis:7.2
+#    container_name: redis-node-4
+#    restart: unless-stopped
+#    logging: *default-logging
+#    command: >
+#      redis-server
+#      --port 6379
+#      --cluster-enabled yes
+#      --cluster-config-file nodes.conf
+#      --cluster-node-timeout 5000
+#      --appendonly yes
+#      --appendfsync everysec
+#      --maxmemory 256mb
+#      --maxmemory-policy allkeys-lru
+#    volumes:
+#      - redis-node-4-data:/data
+#    healthcheck:
+#      test: ["CMD", "redis-cli", "ping"]
+#      interval: 5s
+#      timeout: 3s
+#      retries: 10
+#    networks:
+#      - app-net
+#
+#  redis-node-5:
+#    image: redis:7.2
+#    container_name: redis-node-5
+#    restart: unless-stopped
+#    logging: *default-logging
+#    command: >
+#      redis-server
+#      --port 6379
+#      --cluster-enabled yes
+#      --cluster-config-file nodes.conf
+#      --cluster-node-timeout 5000
+#      --appendonly yes
+#      --appendfsync everysec
+#      --maxmemory 256mb
+#      --maxmemory-policy allkeys-lru
+#    volumes:
+#      - redis-node-5-data:/data
+#    healthcheck:
+#      test: ["CMD", "redis-cli", "ping"]
+#      interval: 5s
+#      timeout: 3s
+#      retries: 10
+#    networks:
+#      - app-net
+#
+#  redis-node-6:
+#    image: redis:7.2
+#    container_name: redis-node-6
+#    restart: unless-stopped
+#    logging: *default-logging
+#    command: >
+#      redis-server
+#      --port 6379
+#      --cluster-enabled yes
+#      --cluster-config-file nodes.conf
+#      --cluster-node-timeout 5000
+#      --appendonly yes
+#      --appendfsync everysec
+#      --maxmemory 256mb
+#      --maxmemory-policy allkeys-lru
+#    volumes:
+#      - redis-node-6-data:/data
+#    healthcheck:
+#      test: ["CMD", "redis-cli", "ping"]
+#      interval: 5s
+#      timeout: 3s
+#      retries: 10
+#    networks:
+#      - app-net
+#
+#  # 클러스터 초기화 컨테이너 - 최초 1회 실행 후 종료
+#  # 해당 명령어를 통해 redis cluster화
+#  #docker exec -it redis-node-1 redis-cli --cluster create \
+#  #redis-node-1:6379 redis-node-2:6379 redis-node-3:6379 \
+#  #redis-node-4:6379 redis-node-5:6379 redis-node-6:6379 \
+#  #--cluster-replicas 1
+#
+#  redis-cluster-init:
+#    image: redis:7.2
+#    container_name: redis-cluster-init
+#    restart: "no"
+#    depends_on:
+#      redis-node-1:
+#        condition: service_healthy
+#      redis-node-2:
+#        condition: service_healthy
+#      redis-node-3:
+#        condition: service_healthy
+#      redis-node-4:
+#        condition: service_healthy
+#      redis-node-5:
+#        condition: service_healthy
+#      redis-node-6:
+#        condition: service_healthy
+#    command: >
+#      sh -c "redis-cli --cluster create
+#      redis-node-1:6379 redis-node-2:6379 redis-node-3:6379
+#      redis-node-4:6379 redis-node-5:6379 redis-node-6:6379
+#      --cluster-replicas 1 --cluster-yes"
+#    networks:
+#      - app-net
 
-  redis-node-2:
-    image: redis:7.2
-    container_name: redis-node-2
-    restart: unless-stopped
-    logging: *default-logging
-    command: >
-      redis-server
-      --port 6379
-      --cluster-enabled yes
-      --cluster-config-file nodes.conf
-      --cluster-node-timeout 5000
-      --appendonly yes
-      --appendfsync everysec
-      --maxmemory 256mb
-      --maxmemory-policy allkeys-lru
-    volumes:
-      - redis-node-2-data:/data
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 5s
-      timeout: 3s
-      retries: 10
-    networks:
-      - app-net
-
-  redis-node-3:
-    image: redis:7.2
-    container_name: redis-node-3
-    restart: unless-stopped
-    logging: *default-logging
-    command: >
-      redis-server
-      --port 6379
-      --cluster-enabled yes
-      --cluster-config-file nodes.conf
-      --cluster-node-timeout 5000
-      --appendonly yes
-      --appendfsync everysec
-      --maxmemory 256mb
-      --maxmemory-policy allkeys-lru
-    volumes:
-      - redis-node-3-data:/data
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 5s
-      timeout: 3s
-      retries: 10
-    networks:
-      - app-net
-
-  redis-node-4:
-    image: redis:7.2
-    container_name: redis-node-4
-    restart: unless-stopped
-    logging: *default-logging
-    command: >
-      redis-server
-      --port 6379
-      --cluster-enabled yes
-      --cluster-config-file nodes.conf
-      --cluster-node-timeout 5000
-      --appendonly yes
-      --appendfsync everysec
-      --maxmemory 256mb
-      --maxmemory-policy allkeys-lru
-    volumes:
-      - redis-node-4-data:/data
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 5s
-      timeout: 3s
-      retries: 10
-    networks:
-      - app-net
-
-  redis-node-5:
-    image: redis:7.2
-    container_name: redis-node-5
-    restart: unless-stopped
-    logging: *default-logging
-    command: >
-      redis-server
-      --port 6379
-      --cluster-enabled yes
-      --cluster-config-file nodes.conf
-      --cluster-node-timeout 5000
-      --appendonly yes
-      --appendfsync everysec
-      --maxmemory 256mb
-      --maxmemory-policy allkeys-lru
-    volumes:
-      - redis-node-5-data:/data
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 5s
-      timeout: 3s
-      retries: 10
-    networks:
-      - app-net
-
-  redis-node-6:
-    image: redis:7.2
-    container_name: redis-node-6
-    restart: unless-stopped
-    logging: *default-logging
-    command: >
-      redis-server
-      --port 6379
-      --cluster-enabled yes
-      --cluster-config-file nodes.conf
-      --cluster-node-timeout 5000
-      --appendonly yes
-      --appendfsync everysec
-      --maxmemory 256mb
-      --maxmemory-policy allkeys-lru
-    volumes:
-      - redis-node-6-data:/data
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 5s
-      timeout: 3s
-      retries: 10
-    networks:
-      - app-net
-
-  # 클러스터 초기화 컨테이너 - 최초 1회 실행 후 종료
-  # 해당 명령어를 통해 redis cluster화
-  #docker exec -it redis-node-1 redis-cli --cluster create \
-  #redis-node-1:6379 redis-node-2:6379 redis-node-3:6379 \
-  #redis-node-4:6379 redis-node-5:6379 redis-node-6:6379 \
-  #--cluster-replicas 1
-
-  redis-cluster-init:
-    image: redis:7.2
-    container_name: redis-cluster-init
-    restart: "no"
-    depends_on:
-      redis-node-1:
-        condition: service_healthy
-      redis-node-2:
-        condition: service_healthy
-      redis-node-3:
-        condition: service_healthy
-      redis-node-4:
-        condition: service_healthy
-      redis-node-5:
-        condition: service_healthy
-      redis-node-6:
-        condition: service_healthy
-    command: >
-      sh -c "redis-cli --cluster create
-      redis-node-1:6379 redis-node-2:6379 redis-node-3:6379
-      redis-node-4:6379 redis-node-5:6379 redis-node-6:6379
-      --cluster-replicas 1 --cluster-yes"
-    networks:
-      - app-net
-
-  # ── Kafka Cluster (3 broker) ──────────────────────────────────────────────
+  # ── Kafka Single Broker ──────────────────────────────────────────────────
   zookeeper:
     image: confluentinc/cp-zookeeper:7.6.1
     container_name: zookeeper
@@ -266,23 +279,25 @@ services:
     networks:
       - app-net
 
-  kafka-1:
+  kafka:
     image: confluentinc/cp-kafka:7.6.1
-    container_name: kafka-1
+    container_name: kafka
     restart: unless-stopped
     logging: *default-logging
     depends_on:
       - zookeeper
+    ports:
+      - "9092:9092"
     networks:
       - app-net
     environment:
       KAFKA_BROKER_ID: 1
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
       KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka-1:9092
-      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 3
-      KAFKA_DEFAULT_REPLICATION_FACTOR: 3
-      KAFKA_MIN_INSYNC_REPLICAS: 2
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_DEFAULT_REPLICATION_FACTOR: 1
+      KAFKA_MIN_INSYNC_REPLICAS: 1
       KAFKA_LOG_RETENTION_HOURS: 24
       KAFKA_LOG_RETENTION_BYTES: 1073741824
       KAFKA_LOG_SEGMENT_BYTES: 268435456
@@ -293,59 +308,87 @@ services:
       retries: 10
       start_period: 30s
 
-  kafka-2:
-    image: confluentinc/cp-kafka:7.6.1
-    container_name: kafka-2
-    restart: unless-stopped
-    logging: *default-logging
-    depends_on:
-      - zookeeper
-    networks:
-      - app-net
-    environment:
-      KAFKA_BROKER_ID: 2
-      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka-2:9092
-      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 3
-      KAFKA_DEFAULT_REPLICATION_FACTOR: 3
-      KAFKA_MIN_INSYNC_REPLICAS: 2
-      KAFKA_LOG_RETENTION_HOURS: 24
-      KAFKA_LOG_RETENTION_BYTES: 1073741824
-      KAFKA_LOG_SEGMENT_BYTES: 268435456
-    healthcheck:
-      test: ["CMD-SHELL", "kafka-broker-api-versions --bootstrap-server localhost:9092"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-      start_period: 30s
-
-  kafka-3:
-    image: confluentinc/cp-kafka:7.6.1
-    container_name: kafka-3
-    restart: unless-stopped
-    logging: *default-logging
-    depends_on:
-      - zookeeper
-    networks:
-      - app-net
-    environment:
-      KAFKA_BROKER_ID: 3
-      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka-3:9092
-      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 3
-      KAFKA_DEFAULT_REPLICATION_FACTOR: 3
-      KAFKA_MIN_INSYNC_REPLICAS: 2
-      KAFKA_LOG_RETENTION_HOURS: 24
-      KAFKA_LOG_RETENTION_BYTES: 1073741824
-      KAFKA_LOG_SEGMENT_BYTES: 268435456
-    healthcheck:
-      test: ["CMD-SHELL", "kafka-broker-api-versions --bootstrap-server localhost:9092"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-      start_period: 30s
+  # ── Kafka Cluster (3 broker) - DISABLED ──────────────────────────────────
+#  kafka-1:
+#    image: confluentinc/cp-kafka:7.6.1
+#    container_name: kafka-1
+#    restart: unless-stopped
+#    logging: *default-logging
+#    depends_on:
+#      - zookeeper
+#    networks:
+#      - app-net
+#    environment:
+#      KAFKA_BROKER_ID: 1
+#      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+#      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092
+#      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka-1:9092
+#      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 3
+#      KAFKA_DEFAULT_REPLICATION_FACTOR: 3
+#      KAFKA_MIN_INSYNC_REPLICAS: 2
+#      KAFKA_LOG_RETENTION_HOURS: 24
+#      KAFKA_LOG_RETENTION_BYTES: 1073741824
+#      KAFKA_LOG_SEGMENT_BYTES: 268435456
+#    healthcheck:
+#      test: ["CMD-SHELL", "kafka-broker-api-versions --bootstrap-server localhost:9092"]
+#      interval: 10s
+#      timeout: 5s
+#      retries: 10
+#      start_period: 30s
+#
+#  kafka-2:
+#    image: confluentinc/cp-kafka:7.6.1
+#    container_name: kafka-2
+#    restart: unless-stopped
+#    logging: *default-logging
+#    depends_on:
+#      - zookeeper
+#    networks:
+#      - app-net
+#    environment:
+#      KAFKA_BROKER_ID: 2
+#      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+#      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092
+#      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka-2:9092
+#      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 3
+#      KAFKA_DEFAULT_REPLICATION_FACTOR: 3
+#      KAFKA_MIN_INSYNC_REPLICAS: 2
+#      KAFKA_LOG_RETENTION_HOURS: 24
+#      KAFKA_LOG_RETENTION_BYTES: 1073741824
+#      KAFKA_LOG_SEGMENT_BYTES: 268435456
+#    healthcheck:
+#      test: ["CMD-SHELL", "kafka-broker-api-versions --bootstrap-server localhost:9092"]
+#      interval: 10s
+#      timeout: 5s
+#      retries: 10
+#      start_period: 30s
+#
+#  kafka-3:
+#    image: confluentinc/cp-kafka:7.6.1
+#    container_name: kafka-3
+#    restart: unless-stopped
+#    logging: *default-logging
+#    depends_on:
+#      - zookeeper
+#    networks:
+#      - app-net
+#    environment:
+#      KAFKA_BROKER_ID: 3
+#      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+#      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092
+#      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka-3:9092
+#      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 3
+#      KAFKA_DEFAULT_REPLICATION_FACTOR: 3
+#      KAFKA_MIN_INSYNC_REPLICAS: 2
+#      KAFKA_LOG_RETENTION_HOURS: 24
+#      KAFKA_LOG_RETENTION_BYTES: 1073741824
+#      KAFKA_LOG_SEGMENT_BYTES: 268435456
+#    healthcheck:
+#      test: ["CMD-SHELL", "kafka-broker-api-versions --bootstrap-server localhost:9092"]
+#      interval: 10s
+#      timeout: 5s
+#      retries: 10
+#      start_period: 30s
 
   minio:
     image: minio/minio:latest
@@ -463,9 +506,11 @@ services:
     depends_on:
       mysql-user:
         condition: service_started
-      redis-cluster-init:
-        condition: service_completed_successfully
-      kafka-1:
+#      redis-cluster-init:
+#        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+      kafka:
         condition: service_healthy
       minio:
         condition: service_started
@@ -476,8 +521,11 @@ services:
       SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL}
       SPRING_DATASOURCE_USERNAME: ${SPRING_DATASOURCE_USERNAME}
       SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD}
-      SPRING_DATA_REDIS_CLUSTER_NODES: redis-node-1:6379,redis-node-2:6379,redis-node-3:6379,redis-node-4:6379,redis-node-5:6379,redis-node-6:6379
-      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka-1:9092,kafka-2:9092,kafka-3:9092
+#      SPRING_DATA_REDIS_CLUSTER_NODES: redis-node-1:6379,redis-node-2:6379,redis-node-3:6379,redis-node-4:6379,redis-node-5:6379,redis-node-6:6379
+#      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka-1:9092,kafka-2:9092,kafka-3:9092
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PORT: 6379
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
       EXTERNAL_CHAT_SERVER_URL: ${CHAT_SERVER_DOMAIN}
       MINIO_ENDPOINT: ${MINIO_ENDPOINT}
       MINIO_PUBLIC_ENDPOINT: ${MINIO_PUBLIC_ENDPOINT}
@@ -507,9 +555,9 @@ services:
     depends_on:
       mysql-user:
         condition: service_started
-      redis-cluster-init:
-        condition: service_completed_successfully
-      kafka-1:
+      redis:
+        condition: service_healthy
+      kafka:
         condition: service_healthy
       minio:
         condition: service_started
@@ -520,8 +568,11 @@ services:
       SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL}
       SPRING_DATASOURCE_USERNAME: ${SPRING_DATASOURCE_USERNAME}
       SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD}
-      SPRING_DATA_REDIS_CLUSTER_NODES: redis-node-1:6379,redis-node-2:6379,redis-node-3:6379,redis-node-4:6379,redis-node-5:6379,redis-node-6:6379
-      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka-1:9092,kafka-2:9092,kafka-3:9092
+      #      SPRING_DATA_REDIS_CLUSTER_NODES: redis-node-1:6379,redis-node-2:6379,redis-node-3:6379,redis-node-4:6379,redis-node-5:6379,redis-node-6:6379
+      #      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka-1:9092,kafka-2:9092,kafka-3:9092
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PORT: 6379
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
       EXTERNAL_CHAT_SERVER_URL: ${CHAT_SERVER_DOMAIN}
       MINIO_ENDPOINT: ${MINIO_ENDPOINT}
       MINIO_PUBLIC_ENDPOINT: ${MINIO_PUBLIC_ENDPOINT}
@@ -545,9 +596,9 @@ services:
     depends_on:
       mongo-chat:
         condition: service_started
-      redis-cluster-init:
-        condition: service_completed_successfully
-      kafka-1:
+      redis:
+        condition: service_healthy
+      kafka:
         condition: service_healthy
       minio:
         condition: service_started
@@ -556,8 +607,11 @@ services:
       SERVER_PORT: "8082"
       COOKIE_DOMAIN: ${COOKIE_DOMAIN}
       SPRING_DATA_MONGODB_URI: ${SPRING_DATA_MONGODB_URI}
-      SPRING_DATA_REDIS_CLUSTER_NODES: redis-node-1:6379,redis-node-2:6379,redis-node-3:6379,redis-node-4:6379,redis-node-5:6379,redis-node-6:6379
-      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka-1:9092,kafka-2:9092,kafka-3:9092
+      #      SPRING_DATA_REDIS_CLUSTER_NODES: redis-node-1:6379,redis-node-2:6379,redis-node-3:6379,redis-node-4:6379,redis-node-5:6379,redis-node-6:6379
+      #      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka-1:9092,kafka-2:9092,kafka-3:9092
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PORT: 6379
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
       EXTERNAL_USER_SERVER_URL: ${USER_SERVER_DOMAIN}
       MINIO_ENDPOINT: ${MINIO_ENDPOINT}
       MINIO_PUBLIC_ENDPOINT: ${MINIO_PUBLIC_ENDPOINT}
@@ -579,9 +633,9 @@ services:
     depends_on:
       mongo-chat:
         condition: service_started
-      redis-cluster-init:
-        condition: service_completed_successfully
-      kafka-1:
+      redis:
+        condition: service_healthy
+      kafka:
         condition: service_healthy
       minio:
         condition: service_started
@@ -590,8 +644,11 @@ services:
       SERVER_PORT: "8082"
       COOKIE_DOMAIN: ${COOKIE_DOMAIN}
       SPRING_DATA_MONGODB_URI: ${SPRING_DATA_MONGODB_URI}
-      SPRING_DATA_REDIS_CLUSTER_NODES: redis-node-1:6379,redis-node-2:6379,redis-node-3:6379,redis-node-4:6379,redis-node-5:6379,redis-node-6:6379
-      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka-1:9092,kafka-2:9092,kafka-3:9092
+      #      SPRING_DATA_REDIS_CLUSTER_NODES: redis-node-1:6379,redis-node-2:6379,redis-node-3:6379,redis-node-4:6379,redis-node-5:6379,redis-node-6:6379
+      #      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka-1:9092,kafka-2:9092,kafka-3:9092
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PORT: 6379
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
       EXTERNAL_USER_SERVER_URL: ${USER_SERVER_DOMAIN}
       MINIO_ENDPOINT: ${MINIO_ENDPOINT}
       MINIO_PUBLIC_ENDPOINT: ${MINIO_PUBLIC_ENDPOINT}
@@ -607,12 +664,13 @@ services:
 volumes:
   mysql-user-data:
   mongo-chat-data:
-  redis-node-1-data:
-  redis-node-2-data:
-  redis-node-3-data:
-  redis-node-4-data:
-  redis-node-5-data:
-  redis-node-6-data:
+  redis-data:
+#  redis-node-1-data:
+#  redis-node-2-data:
+#  redis-node-3-data:
+#  redis-node-4-data:
+#  redis-node-5-data:
+#  redis-node-6-data:
   minio-data:
 
 networks:

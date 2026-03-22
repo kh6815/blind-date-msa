@@ -3,7 +3,7 @@
 <header></header>
 <th:block th:fragment="content">
     <div class="content-scrollable login-container">
-        <div class="logo-large">GRIZZLY</div>
+        <div class="logo-large" th:text="${appName}"></div>
 
         <div th:if="${error}" class="error-message" th:text="${error}"></div>
 

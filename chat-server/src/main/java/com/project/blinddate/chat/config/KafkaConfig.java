@@ -44,7 +44,8 @@ public class KafkaConfig {
     public NewTopic chatMessageSaveTopic() {
         return TopicBuilder.name("chat-message-save")
                 .partitions(3)
-                .replicas(3)
+                .replicas(1)  // Single Kafka broker
+//                .replicas(3)  // For Kafka cluster
                 .build();
     }
 
@@ -52,7 +53,8 @@ public class KafkaConfig {
     public NewTopic chatMessageSaveDltTopic() {
         return TopicBuilder.name("chat-message-save.DLT")
                 .partitions(3)
-                .replicas(3)
+                .replicas(1)  // Single Kafka broker
+//                .replicas(3)  // For Kafka cluster
                 .build();
     }
 

@@ -19,14 +19,22 @@ spring:
   application:
     name: chat-server
 
+app:
+#  display-name: GRIZZLY
+  display-name: BLIND-DATE
+
   data:
     mongodb:
       uri: ${SPRING_DATA_MONGODB_URI}
 
     redis:
-      cluster:
-        nodes: localhost:6379
-        max-redirects: 3
+      # Single Redis instance
+      host: ${SPRING_DATA_REDIS_HOST}
+      port: ${SPRING_DATA_REDIS_PORT}
+      # Redis Cluster (disabled)
+#      cluster:
+#        nodes: localhost:6379
+#        max-redirects: 3
 
   kafka:
     bootstrap-servers: ${SPRING_KAFKA_BOOTSTRAP_SERVERS}

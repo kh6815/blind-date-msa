@@ -1,6 +1,6 @@
 <th:block xmlns:th="http://www.thymeleaf.org" th:fragment="header(showFilter)">
 <header>
-  <div class="logo">GRIZZLY</div>
+  <div class="logo" th:text="${appName}"></div>
   <div>
     <i th:if="${showFilter}"
        class="fas fa-sliders-h js-open-filter"></i>

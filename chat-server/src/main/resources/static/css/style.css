@@ -1,12 +1,12 @@
 :root {
-  --bg-color: #121212;
-  --card-bg: #1e1e1e;
-  --text-primary: #ffffff;
-  --text-secondary: #aaaaaa;
-  --accent-color: #d4a373; /* Gold/Bronze tone from Grizzly */
-  --accent-hover: #b08d55;
-  --message-me: #3a3a3a; /* Dark gray for received messages */
-  --message-other: #d4a373; /* Accent color for sent messages */
+  --bg-color: #f8f9fa;
+  --card-bg: #ffffff;
+  --text-primary: #2c3e50;
+  --text-secondary: #7f8c8d;
+  --accent-color: #ff6b6b; /* Coral pink - bright and cheerful */
+  --accent-hover: #ff5252;
+  --message-me: #e3f2fd; /* Light blue for received messages */
+  --message-other: #ff6b6b; /* Accent color for sent messages */
   --nav-height: 60px;
 }
 
@@ -20,7 +20,7 @@ body {
   font-family:
     -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial,
     sans-serif;
-  background-color: var(--bg-color);
+  background-color: #e0e0e0; /* Light gray for PC viewport margins */
   color: var(--text-primary);
   height: 100vh;
   display: flex;
@@ -37,6 +37,7 @@ body {
   flex-direction: column;
   position: relative;
   overflow: hidden; /* Prevent body scroll */
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.1); /* Subtle shadow for depth */
 }
 
 /* Scrollable Content Wrapper */
@@ -74,7 +75,8 @@ header {
   position: absolute;
   bottom: 0;
   width: 100%;
-  border-top: 1px solid #333;
+  border-top: 1px solid #e9ecef;
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.05);
 }
 
 .nav-item {
@@ -136,7 +138,7 @@ header {
 }
 
 .back-btn {
-  color: white;
+  color: var(--text-primary);
   font-size: 1.5rem;
 }
 
@@ -344,7 +346,7 @@ header {
   align-items: center;
   padding: 10px;
   background-color: var(--card-bg);
-  border-top: 1px solid #333;
+  border-top: 1px solid #e9ecef;
   width: 100%;
   gap: 10px;
   position: absolute;
@@ -355,10 +357,15 @@ header {
   flex: 1;
   padding: 10px;
   border-radius: 20px;
-  border: none;
-  background-color: #333;
-  color: #fff;
+  border: 2px solid #e9ecef;
+  background-color: #ffffff;
+  color: var(--text-primary);
   outline: none;
+  transition: border-color 0.3s;
+}
+
+.chat-input:focus {
+  border-color: var(--accent-color);
 }
 
 .send-btn,
@@ -389,7 +396,7 @@ header {
   align-items: center;
   padding: 15px 0;
   margin: 0 20px;
-  border-bottom: 1px solid #333;
+  border-bottom: 1px solid #e9ecef;
   text-decoration: none;
   color: inherit;
 }
@@ -508,7 +515,7 @@ header {
 
 .menu-item {
   padding: 15px;
-  border-bottom: 1px solid #333;
+  border-bottom: 1px solid #e9ecef;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -527,7 +534,7 @@ header {
   background-color: var(--card-bg);
   display: flex;
   align-items: center;
-  border-bottom: 1px solid #333;
+  border-bottom: 1px solid #e9ecef;
 }
 
 /* Fix for back button in header */
@@ -597,7 +604,7 @@ header {
   padding: 6px 12px;
   margin: 10px 0;
   border-radius: 12px;
-  background-color: #2a2a2a;
+  background-color: #e9ecef;
   color: var(--text-secondary);
   font-size: 0.8rem;
 }
@@ -777,12 +784,12 @@ header {
 
 .btn-chat {
   background: linear-gradient(135deg, var(--accent-color), var(--accent-hover));
-  color: #121212;
+  color: #ffffff;
 }
 
 .btn-pass {
-  background-color: #333;
-  color: #ccc;
+  background-color: #e9ecef;
+  color: var(--text-secondary);
 }
 
 .back-button {
@@ -813,8 +820,9 @@ header {
 }
 
 .info-value {
-  color: #fff;
+  color: var(--text-primary);
   font-size: 1.1rem;
+  line-height: 1.6;
 }
 
 .tag-container {
@@ -824,8 +832,8 @@ header {
 }
 
 .tag {
-  background-color: #2a2a2a;
-  color: var(--accent-color);
+  background-color: #f0f0f0;
+  color: var(--text-primary);
   padding: 8px 15px;
   border-radius: 20px;
   font-size: 0.9rem;
@@ -1000,8 +1008,8 @@ header {
   display: inline-block;
   margin-top: 20px;
   padding: 10px 20px;
-  background-color: #d4a373;
-  color: #121212;
+  background-color: var(--accent-color);
+  color: #ffffff;
   border-radius: 20px;
   text-decoration: none;
   font-weight: bold;
@@ -1016,8 +1024,8 @@ header {
   display: inline-block;
   padding: 10px 20px;
   border-radius: 20px;
-  background-color: #333;
-  color: #fff;
+  background-color: #e9ecef;
+  color: var(--text-primary);
   text-decoration: none;
   font-size: 0.9rem;
 }

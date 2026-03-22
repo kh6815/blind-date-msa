@@ -19,6 +19,10 @@ spring:
   application:
     name: user-server
 
+app:
+#  display-name: GRIZZLY
+  display-name: BLIND-DATE
+
   datasource:
     url: ${SPRING_DATASOURCE_URL}
     username: ${SPRING_DATASOURCE_USERNAME}
@@ -44,9 +48,13 @@ spring:
 
   data:
     redis:
-      cluster:
-        nodes: localhost:6379
-        max-redirects: 3
+      # Single Redis instance
+      host: ${SPRING_DATA_REDIS_HOST}
+      port: ${SPRING_DATA_REDIS_PORT}
+      # Redis Cluster (disabled)
+#      cluster:
+#        nodes: localhost:6379
+#        max-redirects: 3
 
   kafka:
     bootstrap-servers: localhost:9092

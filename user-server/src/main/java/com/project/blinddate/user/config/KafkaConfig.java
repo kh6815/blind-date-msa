@@ -20,7 +20,8 @@ public class KafkaConfig {
     public NewTopic userInfoUpdatedTopic() {
         return TopicBuilder.name("user-info-updated")
                 .partitions(3)
-                .replicas(3)
+                .replicas(1)  // Single Kafka broker
+//                .replicas(3)  // For Kafka cluster
                 .build();
     }
 
