@@ -23,7 +23,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -54,6 +56,7 @@ public class ChatService {
                 .content(event.getContent())
                 .type(event.getType())
                 .sentAt(event.getSentAt())
+                .readBy(event.getReadBy() != null ? event.getReadBy() : new HashMap<>())
                 .build();
 
         chatMessageRepository.save(message);
@@ -121,12 +124,17 @@ public class ChatService {
 
         Instant now = Instant.now();
 
+        // 발신자는 메시지 전송 시 자동으로 읽음 처리
+        Map<Long, Instant> readBy = new HashMap<>();
+        readBy.put(senderUserId, now);
+
         ChatMessage message = ChatMessage.builder()
                 .roomId(room.getId())
                 .senderUserId(senderUserId)
                 .content(content)
                 .type(type)
                 .sentAt(now)
+                .readBy(readBy)
                 .build();
 
         ChatMessage saved = chatMessageRepository.save(message);
@@ -144,11 +152,17 @@ public class ChatService {
 
     @Transactional(readOnly = true)
     public List<ChatMessageResponse> getRecentMessages(String roomId, int page, int size) {
+        // 채팅방 정보 조회 (참여자 수 계산을 위함)
+        ChatRoom room = chatRoomRepository.findById(roomId)
+                .orElseThrow(() -> new IllegalArgumentException("채팅방을 찾을 수 없습니다."));
+
+        int totalParticipants = room.getParticipantUserIds() != null ? room.getParticipantUserIds().size() : 0;
+
         PageRequest pageable = PageRequest.of(page, size);
         Page<ChatMessage> messagesPage = chatMessageRepository.findByRoomIdOrderBySentAtAsc(roomId, pageable);
 
         return messagesPage.stream()
-                .map(chatMapper::toMessageResponse)
+                .map(message -> toMessageResponseWithUnreadCount(message, totalParticipants))
                 .collect(Collectors.toList());
     }
 
@@ -220,6 +234,77 @@ public class ChatService {
         return chatMessageRepository.findTop1ByRoomIdOrderBySentAtDesc(room.getId())
                 .map(msg -> msg.getType() == MessageType.IMAGE ? "이미지" : msg.getContent())
                 .orElse("");
+    }
+
+    /**
+     * 특정 채팅방의 메시지들을 읽음 처리합니다.
+     * @param roomId 채팅방 ID
+     * @param userId 읽음 처리할 사용자 ID
+     * @return 읽음 처리된 메시지 ID 목록
+     */
+    @Transactional
+    public List<String> markMessagesAsRead(String roomId, Long userId) {
+        // 채팅방 존재 확인
+        chatRoomRepository.findById(roomId)
+                .orElseThrow(() -> new IllegalArgumentException("채팅방을 찾을 수 없습니다."));
+
+        Instant now = Instant.now();
+        List<ChatMessage> messages = chatMessageRepository.findByRoomIdOrderBySentAtAsc(roomId);
+
+        // 읽지 않은 메시지만 필터링하여 읽음 처리
+        List<String> updatedMessageIds = messages.stream()
+                .filter(msg -> !msg.isReadBy(userId))
+                .peek(msg -> msg.markAsReadBy(userId, now))
+                .map(ChatMessage::getId)
+                .collect(Collectors.toList());
+
+        // 변경된 메시지들 일괄 저장
+        if (!updatedMessageIds.isEmpty()) {
+            chatMessageRepository.saveAll(
+                    messages.stream()
+                            .filter(msg -> updatedMessageIds.contains(msg.getId()))
+                            .collect(Collectors.toList())
+            );
+        }
+
+        return updatedMessageIds;
+    }
+
+    /**
+     * 특정 채팅방의 읽지 않은 메시지 수를 조회합니다.
+     * @param roomId 채팅방 ID
+     * @param userId 사용자 ID
+     * @return 읽지 않은 메시지 수
+     */
+    @Transactional(readOnly = true)
+    public Long getUnreadCount(String roomId, Long userId) {
+        List<ChatMessage> messages = chatMessageRepository.findByRoomIdOrderBySentAtAsc(roomId);
+
+        return messages.stream()
+                .filter(msg -> !msg.isReadBy(userId))
+                .count();
+    }
+
+    /**
+     * 메시지를 응답 DTO로 변환하면서 unreadCount를 계산합니다.
+     * @param message 메시지
+     * @param totalParticipants 채팅방 전체 참여자 수
+     * @return 메시지 응답 DTO
+     */
+    private ChatMessageResponse toMessageResponseWithUnreadCount(ChatMessage message, int totalParticipants) {
+        int readCount = message.getReadBy() != null ? message.getReadBy().size() : 0;
+        int unreadCount = Math.max(0, totalParticipants - readCount);
+
+        return ChatMessageResponse.builder()
+                .id(message.getId())
+                .roomId(message.getRoomId())
+                .senderUserId(message.getSenderUserId())
+                .content(message.getContent())
+                .type(message.getType())
+                .sentAt(message.getSentAt())
+                .readBy(message.getReadBy())
+                .unreadCount(unreadCount)
+                .build();
     }
 
     /**

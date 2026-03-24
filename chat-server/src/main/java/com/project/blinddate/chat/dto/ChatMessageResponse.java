@@ -8,6 +8,7 @@ import lombok.Builder;
 import lombok.Getter;
 
 import java.time.Instant;
+import java.util.Map;
 
 @Getter
 @Builder
@@ -32,6 +33,12 @@ public class ChatMessageResponse {
 
     @Schema(description = "전송 시각", example = "2025-01-01T10:00:00Z")
     private final Instant sentAt;
+
+    @Schema(description = "메시지를 읽은 사용자 목록 (userId -> 읽은 시간)", example = "{\"1\": \"2025-01-01T10:05:00Z\", \"2\": \"2025-01-01T10:10:00Z\"}")
+    private final Map<Long, Instant> readBy;
+
+    @Schema(description = "안 읽은 사람 수 ", example = "1")
+    private final Integer unreadCount;
 }
 
 
