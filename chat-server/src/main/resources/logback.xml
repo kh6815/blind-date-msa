@@ -27,10 +27,10 @@
 			<fileNamePattern>./logs/blind-date-chat-server-api.%d{yyyy-MM-dd}-%i.gz</fileNamePattern>
 			<!-- 파일 하나 최대 1GB -->
 			<maxFileSize>1GB</maxFileSize>
-			<!-- 60일 보관 -->
-			<maxHistory>60</maxHistory>
+			<!-- 1일 보관 -->
+			<maxHistory>1</maxHistory>
 			<!-- 전체 로그 총합 제한 (선택) -->
-			<totalSizeCap>80GB</totalSizeCap>
+			<totalSizeCap>1GB</totalSizeCap>
 		</rollingPolicy>
 	</appender>
 
@@ -52,10 +52,10 @@
 			<fileNamePattern>./logs/blind-date-chat-server-error.%d{yyyy-MM-dd}-%i.gz</fileNamePattern>
 			<!-- 파일 하나 최대 1GB -->
 			<maxFileSize>1GB</maxFileSize>
-			<!-- 60일 보관 -->
-			<maxHistory>60</maxHistory>
+			<!-- 1일 보관 -->
+			<maxHistory>1</maxHistory>
 			<!-- 전체 로그 총합 제한 (선택) -->
-			<totalSizeCap>80GB</totalSizeCap>
+			<totalSizeCap>1GB</totalSizeCap>
 		</rollingPolicy>
 	</appender>
 

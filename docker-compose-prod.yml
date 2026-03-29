@@ -288,6 +288,8 @@ services:
       - zookeeper
     ports:
       - "9092:9092"
+    volumes:
+      - kafka-data:/var/lib/kafka/data
     networks:
       - app-net
     environment:
@@ -295,12 +297,31 @@ services:
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
       KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092
       KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      # 개인 프로젝트용 - 단일 브로커 설정
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_DEFAULT_REPLICATION_FACTOR: 1
       KAFKA_MIN_INSYNC_REPLICAS: 1
-      KAFKA_LOG_RETENTION_HOURS: 24
-      KAFKA_LOG_RETENTION_BYTES: 1073741824
-      KAFKA_LOG_SEGMENT_BYTES: 268435456
+      # 디스크 공간 절약 - 로그 보존 정책 (개인 프로젝트용으로 매우 짧게 설정)
+      KAFKA_LOG_RETENTION_HOURS: 6                          # 6시간만 보관 (기본 168시간)
+      KAFKA_LOG_RETENTION_BYTES: 524288000                  # 파티션당 500MB로 제한 (기본 -1 무제한)
+      KAFKA_LOG_SEGMENT_BYTES: 134217728                    # 세그먼트 크기 128MB (기본 1GB)
+      KAFKA_LOG_SEGMENT_MS: 3600000                         # 1시간마다 새 세그먼트 생성
+      # 압축 정책 - 디스크 공간 절약
+      KAFKA_COMPRESSION_TYPE: lz4                           # lz4 압축 (빠르고 효율적)
+      KAFKA_LOG_CLEANUP_POLICY: delete                      # 오래된 로그 삭제 정책
+      KAFKA_LOG_CLEANER_ENABLE: 'true'                      # 로그 클리너 활성화
+      KAFKA_LOG_CLEANER_DELETE_RETENTION_MS: 3600000        # 삭제 대상 1시간 보관 후 제거
+      # __consumer_offsets 토픽 파티션 수 축소 (기본 50 → 10)
+      KAFKA_OFFSETS_TOPIC_NUM_PARTITIONS: 10                # consumer offsets 파티션 10개
+      KAFKA_TRANSACTION_STATE_LOG_NUM_PARTITIONS: 10        # transaction 파티션 10개
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      # 기본 파티션 수 축소 (개인 프로젝트용)
+      KAFKA_NUM_PARTITIONS: 3                               # 신규 토픽 기본 3개 파티션
+      # 자동 토픽 생성 비활성화 (필요한 토픽만 수동 생성하여 공간 절약)
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'false'
+      # 메모리 최적화
+      KAFKA_HEAP_OPTS: "-Xms256m -Xmx512m"                  # JVM 힙 메모리 제한
     healthcheck:
       test: ["CMD-SHELL", "kafka-broker-api-versions --bootstrap-server localhost:9092"]
       interval: 10s
@@ -410,9 +431,7 @@ services:
     logging: *default-logging
     depends_on:
       - user-server-1
-      - user-server-2
       - chat-server-1
-      - chat-server-2
     ports:
       - "80:80"
       - "443:443"
@@ -435,67 +454,67 @@ services:
           - grafana.blind-date.site
 
   # Prometheus (메트릭 수집기)
-  prometheus:
-    image: prom/prometheus:latest
-    container_name: prometheus
-    logging: *default-logging
-    command:
-      - --config.file=/etc/prometheus/prometheus.yml
-      - --storage.tsdb.retention.time=7d
-      - --storage.tsdb.retention.size=1GB
-    volumes:
-      - ./monitoring/prometheus/config/prometheus.yml:/etc/prometheus/prometheus.yml:ro
-      - ./monitoring/prometheus/data:/prometheus
-    restart: unless-stopped
-    networks:
-      - app-net
-
-  # alloy 로그 수집기
-  alloy:
-    image: grafana/alloy:latest
-    container_name: alloy
-    logging: *default-logging
-    volumes:
-      - ./monitoring/alloy/config/config.alloy:/etc/alloy/config.alloy
-      - ./logs:/var/log/app
-      - ./monitoring/alloy/data:/var/lib/alloy/data
-    command: run /etc/alloy/config.alloy
-    depends_on:
-      - loki
-    networks:
-      - app-net
-    restart: unless-stopped
-
-  loki:
-    image: grafana/loki:3.5.1
-    container_name: loki
-    logging: *default-logging
-    command: -config.file=/etc/loki/loki.yml
-    volumes:
-      - ./monitoring/loki/config:/etc/loki
-      - ./monitoring/loki/data:/loki
-    networks:
-      - app-net
-    restart: unless-stopped
-
-  # Grafana (모니터링 대시보드)
-  grafana:
-    image: grafana/grafana:latest
-    container_name: grafana
-    logging: *default-logging
-    volumes:
-      - ./monitoring/grafana/data:/var/lib/grafana
-    depends_on:
-      - prometheus
-      - loki
-    ports:
-      - "3000:3000"
-    environment:
-      - GF_SERVER_ROOT_URL=https://grafana.blind-date.site
-#      - GF_SERVER_SERVE_FROM_SUB_PATH=false
-    restart: unless-stopped
-    networks:
-      - app-net
+#  prometheus:
+#    image: prom/prometheus:latest
+#    container_name: prometheus
+#    logging: *default-logging
+#    command:
+#      - --config.file=/etc/prometheus/prometheus.yml
+#      - --storage.tsdb.retention.time=7d
+#      - --storage.tsdb.retention.size=1GB
+#    volumes:
+#      - ./monitoring/prometheus/config/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+#      - ./monitoring/prometheus/data:/prometheus
+#    restart: unless-stopped
+#    networks:
+#      - app-net
+#
+#  # alloy 로그 수집기
+#  alloy:
+#    image: grafana/alloy:latest
+#    container_name: alloy
+#    logging: *default-logging
+#    volumes:
+#      - ./monitoring/alloy/config/config.alloy:/etc/alloy/config.alloy
+#      - ./logs:/var/log/app
+#      - ./monitoring/alloy/data:/var/lib/alloy/data
+#    command: run /etc/alloy/config.alloy
+#    depends_on:
+#      - loki
+#    networks:
+#      - app-net
+#    restart: unless-stopped
+#
+#  loki:
+#    image: grafana/loki:3.5.1
+#    container_name: loki
+#    logging: *default-logging
+#    command: -config.file=/etc/loki/loki.yml
+#    volumes:
+#      - ./monitoring/loki/config:/etc/loki
+#      - ./monitoring/loki/data:/loki
+#    networks:
+#      - app-net
+#    restart: unless-stopped
+#
+#  # Grafana (모니터링 대시보드)
+#  grafana:
+#    image: grafana/grafana:latest
+#    container_name: grafana
+#    logging: *default-logging
+#    volumes:
+#      - ./monitoring/grafana/data:/var/lib/grafana
+#    depends_on:
+#      - prometheus
+#      - loki
+#    ports:
+#      - "3000:3000"
+#    environment:
+#      - GF_SERVER_ROOT_URL=https://grafana.blind-date.site
+##      - GF_SERVER_SERVE_FROM_SUB_PATH=false
+#    restart: unless-stopped
+#    networks:
+#      - app-net
 
   user-server-1:
     image: eclipse-temurin:17-jre-alpine
@@ -546,46 +565,46 @@ services:
     networks:
       - app-net
 
-  user-server-2:
-    image: eclipse-temurin:17-jre-alpine
-    container_name: user-server-2
-    restart: unless-stopped
-    logging: *default-logging
-    command: [ "java","-jar","/app/user-server.jar" ]
-    depends_on:
-      mysql-user:
-        condition: service_started
-      redis:
-        condition: service_healthy
-      kafka:
-        condition: service_healthy
-      minio:
-        condition: service_started
-    environment:
-      SPRING_PROFILES_ACTIVE: docker
-      SERVER_PORT: "8081"
-      COOKIE_DOMAIN: ${COOKIE_DOMAIN}
-      SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL}
-      SPRING_DATASOURCE_USERNAME: ${SPRING_DATASOURCE_USERNAME}
-      SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD}
-      #      SPRING_DATA_REDIS_CLUSTER_NODES: redis-node-1:6379,redis-node-2:6379,redis-node-3:6379,redis-node-4:6379,redis-node-5:6379,redis-node-6:6379
-      #      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka-1:9092,kafka-2:9092,kafka-3:9092
-      SPRING_DATA_REDIS_HOST: redis
-      SPRING_DATA_REDIS_PORT: 6379
-      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
-      EXTERNAL_CHAT_SERVER_URL: ${CHAT_SERVER_DOMAIN}
-      MINIO_ENDPOINT: ${MINIO_ENDPOINT}
-      MINIO_PUBLIC_ENDPOINT: ${MINIO_PUBLIC_ENDPOINT}
-      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY}
-      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY}
-      MINIO_BUCKET: ${MINIO_BUCKET_USER}
-      JWT_SECRET: ${JWT_SECRET}
-      JWT_EXPIRATION: ${JWT_EXPIRATION:-86400000}
-    volumes:
-      - ./user-server.jar:/app/user-server.jar
-      - ./logs/user-server-2:/logs
-    networks:
-      - app-net
+#  user-server-2:
+#    image: eclipse-temurin:17-jre-alpine
+#    container_name: user-server-2
+#    restart: unless-stopped
+#    logging: *default-logging
+#    command: [ "java","-jar","/app/user-server.jar" ]
+#    depends_on:
+#      mysql-user:
+#        condition: service_started
+#      redis:
+#        condition: service_healthy
+#      kafka:
+#        condition: service_healthy
+#      minio:
+#        condition: service_started
+#    environment:
+#      SPRING_PROFILES_ACTIVE: docker
+#      SERVER_PORT: "8081"
+#      COOKIE_DOMAIN: ${COOKIE_DOMAIN}
+#      SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL}
+#      SPRING_DATASOURCE_USERNAME: ${SPRING_DATASOURCE_USERNAME}
+#      SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD}
+#      #      SPRING_DATA_REDIS_CLUSTER_NODES: redis-node-1:6379,redis-node-2:6379,redis-node-3:6379,redis-node-4:6379,redis-node-5:6379,redis-node-6:6379
+#      #      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka-1:9092,kafka-2:9092,kafka-3:9092
+#      SPRING_DATA_REDIS_HOST: redis
+#      SPRING_DATA_REDIS_PORT: 6379
+#      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+#      EXTERNAL_CHAT_SERVER_URL: ${CHAT_SERVER_DOMAIN}
+#      MINIO_ENDPOINT: ${MINIO_ENDPOINT}
+#      MINIO_PUBLIC_ENDPOINT: ${MINIO_PUBLIC_ENDPOINT}
+#      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY}
+#      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY}
+#      MINIO_BUCKET: ${MINIO_BUCKET_USER}
+#      JWT_SECRET: ${JWT_SECRET}
+#      JWT_EXPIRATION: ${JWT_EXPIRATION:-86400000}
+#    volumes:
+#      - ./user-server.jar:/app/user-server.jar
+#      - ./logs/user-server-2:/logs
+#    networks:
+#      - app-net
 
   chat-server-1:
     image: eclipse-temurin:17-jre-alpine
@@ -624,42 +643,42 @@ services:
     networks:
       - app-net
 
-  chat-server-2:
-    image: eclipse-temurin:17-jre-alpine
-    container_name: chat-server-2
-    restart: unless-stopped
-    logging: *default-logging
-    command: [ "java","-jar","/app/chat-server.jar" ]
-    depends_on:
-      mongo-chat:
-        condition: service_started
-      redis:
-        condition: service_healthy
-      kafka:
-        condition: service_healthy
-      minio:
-        condition: service_started
-    environment:
-      SPRING_PROFILES_ACTIVE: docker
-      SERVER_PORT: "8082"
-      COOKIE_DOMAIN: ${COOKIE_DOMAIN}
-      SPRING_DATA_MONGODB_URI: ${SPRING_DATA_MONGODB_URI}
-      #      SPRING_DATA_REDIS_CLUSTER_NODES: redis-node-1:6379,redis-node-2:6379,redis-node-3:6379,redis-node-4:6379,redis-node-5:6379,redis-node-6:6379
-      #      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka-1:9092,kafka-2:9092,kafka-3:9092
-      SPRING_DATA_REDIS_HOST: redis
-      SPRING_DATA_REDIS_PORT: 6379
-      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
-      EXTERNAL_USER_SERVER_URL: ${USER_SERVER_DOMAIN}
-      MINIO_ENDPOINT: ${MINIO_ENDPOINT}
-      MINIO_PUBLIC_ENDPOINT: ${MINIO_PUBLIC_ENDPOINT}
-      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY}
-      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY}
-      MINIO_BUCKET: ${MINIO_BUCKET_CHAT}
-    volumes:
-      - ./chat-server.jar:/app/chat-server.jar
-      - ./logs/chat-server-2:/logs
-    networks:
-      - app-net
+#  chat-server-2:
+#    image: eclipse-temurin:17-jre-alpine
+#    container_name: chat-server-2
+#    restart: unless-stopped
+#    logging: *default-logging
+#    command: [ "java","-jar","/app/chat-server.jar" ]
+#    depends_on:
+#      mongo-chat:
+#        condition: service_started
+#      redis:
+#        condition: service_healthy
+#      kafka:
+#        condition: service_healthy
+#      minio:
+#        condition: service_started
+#    environment:
+#      SPRING_PROFILES_ACTIVE: docker
+#      SERVER_PORT: "8082"
+#      COOKIE_DOMAIN: ${COOKIE_DOMAIN}
+#      SPRING_DATA_MONGODB_URI: ${SPRING_DATA_MONGODB_URI}
+#      #      SPRING_DATA_REDIS_CLUSTER_NODES: redis-node-1:6379,redis-node-2:6379,redis-node-3:6379,redis-node-4:6379,redis-node-5:6379,redis-node-6:6379
+#      #      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka-1:9092,kafka-2:9092,kafka-3:9092
+#      SPRING_DATA_REDIS_HOST: redis
+#      SPRING_DATA_REDIS_PORT: 6379
+#      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+#      EXTERNAL_USER_SERVER_URL: ${USER_SERVER_DOMAIN}
+#      MINIO_ENDPOINT: ${MINIO_ENDPOINT}
+#      MINIO_PUBLIC_ENDPOINT: ${MINIO_PUBLIC_ENDPOINT}
+#      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY}
+#      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY}
+#      MINIO_BUCKET: ${MINIO_BUCKET_CHAT}
+#    volumes:
+#      - ./chat-server.jar:/app/chat-server.jar
+#      - ./logs/chat-server-2:/logs
+#    networks:
+#      - app-net
 
 volumes:
   mysql-user-data:
@@ -671,6 +690,7 @@ volumes:
 #  redis-node-4-data:
 #  redis-node-5-data:
 #  redis-node-6-data:
+  kafka-data:
   minio-data:
 
 networks:
