@@ -13,17 +13,17 @@ frontend_worker:
 
 limits_config:
   query_timeout: 5m
-  retention_period: 2160h             # 90일간 로그 보관
+  retention_period: 168h              # 7일간 로그 보관 (개인 프로젝트용으로 축소)
   ingestion_rate_mb: 16               # 초당 16MB 수집 제한
   ingestion_burst_size_mb: 32         # 버스트 시 32MB까지 허용
   max_query_parallelism: 32           # 최대 32개 병렬 쿼리
   allow_structured_metadata: false    # 구조화된 메타데이터 비허용
-  max_line_size: 10MB         # 한 줄의 최대 크기
+  max_line_size: 10MB                 # 한 줄의 최대 크기
   max_line_size_truncate: true
-  #max_line_size: 0 
+  #max_line_size: 0
   #max_entry_size: 2MB         # 한 줄의 최대 크기
   reject_old_samples: true
-  reject_old_samples_max_age: 168h # 7일 이상 된 로그 거부
+  reject_old_samples_max_age: 168h    # 7일 이상 된 로그 거부
 
 common:
   path_prefix: /loki
