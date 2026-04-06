@@ -1,6 +1,7 @@
 package com.project.blinddate.chat.config;
 
 import com.project.blinddate.chat.dto.ChatMessageEvent;
+import com.project.blinddate.chat.dto.ChatMessageReadEvent;
 import org.apache.kafka.clients.admin.NewTopic;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerConfig;
@@ -52,6 +53,25 @@ public class KafkaConfig {
     @Bean
     public NewTopic chatMessageSaveDltTopic() {
         return TopicBuilder.name("chat-message-save.DLT")
+                .partitions(3)
+                .replicas(1)  // Single Kafka broker
+//                .replicas(3)  // For Kafka cluster
+                .build();
+    }
+
+    @Bean
+    public NewTopic chatMessageReadTopic() {
+        return TopicBuilder.name("chat-message-read")
+                .partitions(3)
+                .replicas(1)  // Single Kafka broker
+//                .replicas(3)  // For Kafka cluster
+                .build();
+    }
+
+    // DLT -> Dead Letter Topics: 실패한 이벤트 재발행시 사용할 토픽이름
+    @Bean
+    public NewTopic chatMessageReadDltTopic() {
+        return TopicBuilder.name("chat-message-read.DLT")
                 .partitions(3)
                 .replicas(1)  // Single Kafka broker
 //                .replicas(3)  // For Kafka cluster
@@ -166,6 +186,67 @@ public class KafkaConfig {
 
         // 실패 메시지는 chat-message-save.DLT 토픽으로 전송, 최대 3회 1초 간격 재시도
         DeadLetterPublishingRecoverer recoverer = new DeadLetterPublishingRecoverer(chatMessageKafkaTemplate);
+        DefaultErrorHandler errorHandler = new DefaultErrorHandler(recoverer, new FixedBackOff(1000L, 3));
+        factory.setCommonErrorHandler(errorHandler);
+
+        return factory;
+    }
+
+    /**
+     * ChatMessageReadEvent Producer Factory 빈 등록
+     */
+    @Bean
+    public ProducerFactory<String, ChatMessageReadEvent> chatMessageReadProducerFactory(
+            @Value("${spring.kafka.bootstrap-servers}") String bootstrapServers
+    ) {
+        Map<String, Object> props = new HashMap<>();
+        props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
+        props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
+        props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, JsonSerializer.class);
+        props.put(ProducerConfig.ACKS_CONFIG, "all");
+        return new DefaultKafkaProducerFactory<>(props);
+    }
+
+    /**
+     * ChatMessageReadEvent KafkaTemplate 빈 등록
+     */
+    @Bean
+    public KafkaTemplate<String, ChatMessageReadEvent> chatMessageReadKafkaTemplate(
+            ProducerFactory<String, ChatMessageReadEvent> chatMessageReadProducerFactory
+    ) {
+        return new KafkaTemplate<>(chatMessageReadProducerFactory);
+    }
+
+    /**
+     * ChatMessageReadEvent Consumer Factory 빈 등록
+     */
+    @Bean
+    public ConsumerFactory<String, ChatMessageReadEvent> chatMessageReadConsumerFactory(
+            @Value("${spring.kafka.bootstrap-servers}") String bootstrapServers,
+            @Value("${spring.kafka.consumer.group-id:chat-group}") String groupId
+    ) {
+        Map<String, Object> props = new HashMap<>();
+        props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
+        props.put(ConsumerConfig.GROUP_ID_CONFIG, groupId);
+        props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
+        props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, JsonDeserializer.class);
+        props.put(JsonDeserializer.TRUSTED_PACKAGES, "*");
+        return new DefaultKafkaConsumerFactory<>(props, new StringDeserializer(), new JsonDeserializer<>(ChatMessageReadEvent.class));
+    }
+
+    /**
+     * ChatMessageReadEvent Kafka Listener Container Factory 빈 등록
+     */
+    @Bean
+    public ConcurrentKafkaListenerContainerFactory<String, ChatMessageReadEvent> chatMessageReadKafkaListenerContainerFactory(
+            ConsumerFactory<String, ChatMessageReadEvent> chatMessageReadConsumerFactory,
+            KafkaTemplate<String, ChatMessageReadEvent> chatMessageReadKafkaTemplate
+    ) {
+        ConcurrentKafkaListenerContainerFactory<String, ChatMessageReadEvent> factory = new ConcurrentKafkaListenerContainerFactory<>();
+        factory.setConsumerFactory(chatMessageReadConsumerFactory);
+
+        // 실패 메시지는 chat-message-read.DLT 토픽으로 전송, 최대 3회 1초 간격 재시도
+        DeadLetterPublishingRecoverer recoverer = new DeadLetterPublishingRecoverer(chatMessageReadKafkaTemplate);
         DefaultErrorHandler errorHandler = new DefaultErrorHandler(recoverer, new FixedBackOff(1000L, 3));
         factory.setCommonErrorHandler(errorHandler);
 

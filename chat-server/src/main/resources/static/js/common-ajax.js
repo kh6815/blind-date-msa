@@ -39,6 +39,30 @@ function fnApiPost(url, isAsync, headers, data, dataType, call_func) {
     });
 }
 
+function fnApiPut(url, isAsync, headers, data, dataType, call_func, error_func, complete_func) {
+    $.ajax({
+        url : url,
+        async : isAsync,
+        type : 'put',
+        headers : headers ? headers : {},
+        contentType: 'application/json',
+        data : data ? JSON.stringify(data) : {},
+        dataType : dataType, // json or html
+        xhrFields: { withCredentials: true },
+        success : function(res) {
+            //call_func(res);
+            fnResCheck(dataType, res, call_func)
+        },
+        error: function(error) {
+            fnErrorCheck(dataType, error)
+        },
+        complete: function(res) {
+
+        }
+    });
+}
+
+
 function fnApiUpload(url, headers, formData, call_func) {
     $.ajax({
         url : url,

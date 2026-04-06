@@ -6,14 +6,14 @@ import org.springframework.web.socket.config.annotation.EnableWebSocketMessageBr
 import org.springframework.web.socket.config.annotation.StompEndpointRegistry;
 import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerConfigurer;
 
-@Configuration
-@EnableWebSocketMessageBroker
 /**
  * WebSocket 설정 클래스
  *
  * STOMP 프로토콜 기반의 WebSocket 메시지 브로커를 설정합니다.
- * 클라이언트와 서버 간의 양방향 통신을 지원하며, 채팅 기능을 구현하는 데 핵심적인 역할을 합니다.
+ * 채팅 메시지 실시간 전송을 위한 WebSocket 연결을 지원합니다.
  */
+@Configuration
+@EnableWebSocketMessageBroker
 public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     /**
@@ -27,10 +27,12 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
      */
     @Override
     public void configureMessageBroker(MessageBrokerRegistry registry) {
-        // 구독(Subscribe) 경로: /topic/room/{roomId} 등으로 메시지를 받을 때 사용
-        registry.enableSimpleBroker("/topic");
+        // 구독(Subscribe) 경로: /topic/room/{roomId}, /user/{token}/unread-badge 등으로 메시지를 받을 때 사용
+        registry.enableSimpleBroker("/topic", "/user");
         // 발행(Publish) 경로: /pub/chat/message 등으로 메시지를 보낼 때 사용
         registry.setApplicationDestinationPrefixes("/pub");
+        // 사용자별 메시지 전송을 위한 prefix 설정
+        registry.setUserDestinationPrefix("/user");
     }
 
     /**
@@ -38,19 +40,25 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
      *
      * 클라이언트가 WebSocket 연결을 맺기 위한 엔드포인트를 설정합니다.
      * - addEndpoint("/ws/chat"): "/ws/chat" 경로로 WebSocket 연결을 허용합니다.
-     * - setAllowedOriginPatterns("*"): 모든 도메인에서의 접속을 허용합니다 (CORS 설정).
+     * - setAllowedOriginPatterns: 허용할 도메인을 설정합니다 (CORS 설정).
      * - withSockJS(): WebSocket을 지원하지 않는 브라우저에서도 SockJS를 통해 통신할 수 있도록 지원합니다.
-     *
      */
     @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
+        String[] allowedOrigins = {
+            "http://*.blind-date.site",
+            "http://*.blind-date.com",
+            "https://*.blind-date.site",
+            "https://*.blind-date.com"
+        };
+
         // 일반 WebSocket 연결 엔드포인트
         registry.addEndpoint("/ws/chat")
-                .setAllowedOriginPatterns("*");
-        
+                .setAllowedOriginPatterns(allowedOrigins);
+
         // SockJS 지원 엔드포인트 (Fallback)
         registry.addEndpoint("/ws/chat")
-                .setAllowedOriginPatterns("*")
+                .setAllowedOriginPatterns(allowedOrigins)
                 .withSockJS();
     }
 }

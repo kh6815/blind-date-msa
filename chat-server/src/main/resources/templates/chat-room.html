@@ -74,6 +74,9 @@
 
         let stompClient = null;
         let lastDateKey = null;
+        let currentPage = 0;
+        let isLoading = false;
+        let hasMore = true;
 
         const ChatApp = {
             messagesArea: null,
@@ -94,6 +97,13 @@
                     if (e.key === "Enter") {
                         e.preventDefault();
                         this.sendMessage();
+                    }
+                });
+
+                // 무한 스크롤: 맨 위로 스크롤 시 이전 메시지 로드
+                this.messagesArea.addEventListener("scroll", () => {
+                    if (this.messagesArea.scrollTop === 0 && !isLoading && hasMore) {
+                        this.loadMoreMessages();
                     }
                 });
 
@@ -124,9 +134,18 @@
                 stompClient.debug = () => {};
 
                 stompClient.connect({}, () => {
+                    // 일반 메시지 구독
                     stompClient.subscribe(`/topic/chats/${roomId}`, (msg) => {
                         this.renderMessage(JSON.parse(msg.body));
                     });
+
+                    // 읽음 이벤트 구독
+                    stompClient.subscribe(`/topic/chats/${roomId}/read`, (msg) => {
+                        this.handleReadEvent(JSON.parse(msg.body));
+                    });
+
+                    // 채팅방 진입 시 자동 읽음 처리
+                    this.markAllAsRead();
                 }, () => {
                     console.log("reconnecting websocket...");
                     setTimeout(() => this.connectSocket(), 5000);
@@ -138,22 +157,80 @@
             },
 
             async loadHistory() {
+                isLoading = true;
                 fnApiGet(`/api/v1/chats/rooms/${roomId}/messages`, true, {}, { page: 0, size: 50 }, "json", function(res) {
-                        if (!res.data) return;
+                        if (!res.data) {
+                            isLoading = false;
+                            hasMore = false;
+                            return;
+                        }
+
                         const fragment = document.createDocumentFragment();
-
-                        res.data
-                            .sort((a,b)=> new Date(a.sent_at) - new Date(b.sent_at))
-                            .forEach(msg => {
-
-                                const nodes = ChatApp.createMessageNode(msg);
-
-                                nodes.forEach(node => fragment.appendChild(node));
-
-                            });
+                        
+                        res.data.forEach(msg => {
+                            const nodes = ChatApp.createMessageNode(msg);
+                            nodes.forEach(node => fragment.appendChild(node));
+                        });
 
                         ChatApp.messagesArea.appendChild(fragment);
                         ChatApp.scrollToBottom();
+
+                        // 첫 페이지에서 50개 미만이면 더 이상 로드할 메시지가 없음
+                        if (res.data.length < 50) {
+                            hasMore = false;
+                        } else {
+                            currentPage = 1;  // 다음 페이지 준비
+                        }
+
+                        isLoading = false;
+                    }
+                );
+            },
+
+            async loadMoreMessages() {
+                if (isLoading || !hasMore) return;
+
+                isLoading = true;
+                const previousScrollHeight = this.messagesArea.scrollHeight;
+
+                fnApiGet(`/api/v1/chats/rooms/${roomId}/messages`, true, {}, { page: currentPage, size: 50 }, "json", function(res) {
+                        if (!res.data || res.data.length === 0) {
+                            hasMore = false;
+                            isLoading = false;
+                            return;
+                        }
+
+                        const fragment = document.createDocumentFragment();
+
+                        // 날짜 구분자 처리를 위해 첫 번째 메시지 이전의 날짜 키를 임시로 초기화
+                        const firstExistingMessage = ChatApp.messagesArea.querySelector('.message-wrapper');
+                        if (firstExistingMessage) {
+                            const firstDate = firstExistingMessage.getAttribute('data-sent-at');
+                            if (firstDate) {
+                                lastDateKey = null;  // 날짜 구분자를 새로 생성하도록 초기화
+                            }
+                        }
+                    
+                        res.data.forEach(msg => {
+                            const nodes = ChatApp.createMessageNode(msg);
+                            nodes.forEach(node => fragment.appendChild(node));
+                        });
+
+                        // 기존 메시지 앞에 삽입
+                        ChatApp.messagesArea.insertBefore(fragment, ChatApp.messagesArea.firstChild);
+
+                        // 스크롤 위치 유지
+                        const newScrollHeight = ChatApp.messagesArea.scrollHeight;
+                        ChatApp.messagesArea.scrollTop = newScrollHeight - previousScrollHeight;
+
+                        // 페이지네이션 상태 업데이트
+                        if (res.data.length < 50) {
+                            hasMore = false;
+                        } else {
+                            currentPage++;
+                        }
+
+                        isLoading = false;
                     }
                 );
             },
@@ -184,6 +261,11 @@
                 });
 
                 this.scrollToBottom();
+
+                // 다른 사람이 보낸 메시지는 자동으로 읽음 처리
+                if (message.sender_user_id !== userId) {
+                    this.markAllAsRead();
+                }
             },
 
             createMessageNode(message) {
@@ -220,6 +302,8 @@
 
                 messageContainer.className =
                     isMe ? "message-wrapper me" : "message-wrapper other";
+                messageContainer.setAttribute("data-message-id", message.id);
+                messageContainer.setAttribute("data-sent-at", message.sent_at);  // Timestamp 기반 읽음 처리를 위한 속성
 
                 const bubble = document.createElement("div");
                 bubble.className = "message-bubble";
@@ -254,6 +338,15 @@
                     hour: "2-digit",
                     minute: "2-digit",
                 });
+
+                // 내가 보낸 메시지인 경우 안 읽은 사람 수 표시
+                if (isMe && message.unread_count != null && message.unread_count > 0) {
+                    const unreadSpan = document.createElement("span");
+                    unreadSpan.className = "unread-count";
+                    unreadSpan.textContent = message.unread_count;
+                    unreadSpan.setAttribute("data-unread-count", message.unread_count);
+                    timeDiv.insertBefore(unreadSpan, timeDiv.firstChild);
+                }
 
                 messageContainer.appendChild(bubble);
                 messageContainer.appendChild(timeDiv);
@@ -306,6 +399,62 @@
 
                 modal.style.display = "flex";
                 modalImg.src = src;
+            },
+
+            // 읽음 이벤트 처리 (Timestamp 기반 - 다대다 채팅 지원)
+            handleReadEvent(readEvent) {
+                console.log("Read event received:", readEvent);
+
+                // 다른 사람이 읽은 경우에만 처리 (내가 읽은 경우는 이미 읽음 상태이므로 무시)
+                if (readEvent.user_id === userId) {
+                    return;
+                }
+
+                // Timestamp 기반 증분 업데이트
+                // readEvent.read_at 시간 이전에 전송된 내가 보낸 메시지의 unread count를 1씩 차감
+                const readAtTimestamp = new Date(readEvent.read_at);
+                let updatedCount = 0;
+
+                // 모든 메시지 래퍼를 순회
+                const messageWrappers = this.messagesArea.querySelectorAll('.message-wrapper.me');
+                messageWrappers.forEach(wrapper => {
+                    // 메시지의 sent_at 시간 추출 (data attribute 사용)
+                    const sentAt = wrapper.getAttribute('data-sent-at');
+                    if (!sentAt) return;
+
+                    const sentAtTimestamp = new Date(sentAt);
+
+                    // readAt 시간 이전에 전송된 메시지만 처리
+                    if (sentAtTimestamp <= readAtTimestamp) {
+                        const unreadSpan = wrapper.querySelector('.unread-count');
+                        if (unreadSpan) {
+                            const currentCount = parseInt(unreadSpan.getAttribute('data-unread-count')) || 0;
+                            const newCount = Math.max(0, currentCount - 1);
+
+                            if (newCount === 0) {
+                                // unread count가 0이 되면 배지 제거
+                                unreadSpan.remove();
+                                updatedCount++;
+                            } else {
+                                // unread count 감소
+                                unreadSpan.textContent = newCount;
+                                unreadSpan.setAttribute('data-unread-count', newCount);
+                                updatedCount++;
+                            }
+                        }
+                    }
+                });
+
+                console.log(`Updated ${updatedCount} message(s) unread count after read event from user ${readEvent.user_id} (readAt: ${readEvent.read_at})`);
+            },
+
+            // 모든 메시지 읽음 처리
+            markAllAsRead() {
+                fnApiPut(`/api/v1/chats/rooms/${roomId}/messages/read`, true, {}, {
+                    user_id: userId
+                }, "json", function(res) {
+                    console.log("Messages marked as read:", res);
+                });
             }
 
         };

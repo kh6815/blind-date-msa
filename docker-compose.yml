@@ -8,9 +8,11 @@ services:
       MYSQL_DATABASE: ${MYSQL_DATABASE:-blind_date_user}
       MYSQL_USER: ${SPRING_DATASOURCE_USERNAME}
       MYSQL_PASSWORD: ${SPRING_DATASOURCE_PASSWORD}
+#      TZ: Asia/Seoul
     command:
       - --character-set-server=utf8mb4
       - --collation-server=utf8mb4_unicode_ci
+#      - --default-time-zone=+09:00
     ports:
       - "3306:3306"
     volumes:
@@ -24,6 +26,7 @@ services:
     restart: unless-stopped
     environment:
       MONGO_INITDB_DATABASE: ${MONGO_INITDB_DATABASE:-blind_date_chat}
+#      TZ: Asia/Seoul
     ports:
       - "27017:27017"
     volumes:
@@ -477,8 +480,10 @@ services:
     build:
       context: .
       dockerfile: user-server/Dockerfile
+#    image: eclipse-temurin:17-jre-alpine
     container_name: user-server-1
     restart: unless-stopped
+#    command: [ "java","-jar","/app/user-server.jar" ]
     depends_on:
       mysql-user:
         condition: service_started
@@ -489,6 +494,7 @@ services:
       minio:
         condition: service_started
     environment:
+      TZ: Asia/Seoul
       SPRING_PROFILES_ACTIVE: docker
       SERVER_PORT: "8081"
       COOKIE_DOMAIN: ${COOKIE_DOMAIN}
@@ -514,6 +520,7 @@ services:
       start_period: 20s
     volumes:
       - ./logs/user-server-1:/app/logs
+#      - ./user-server/build/libs/user-server-0.0.1-SNAPSHOT.jar:/app/user-server.jar
     networks:
       - app-net
 
@@ -521,8 +528,10 @@ services:
     build:
       context: .
       dockerfile: user-server/Dockerfile
+#    image: eclipse-temurin:17-jre-alpine
     container_name: user-server-2
     restart: unless-stopped
+#    command: [ "java","-jar","/app/user-server.jar" ]
     depends_on:
       mysql-user:
         condition: service_started
@@ -533,6 +542,7 @@ services:
       minio:
         condition: service_started
     environment:
+      TZ: Asia/Seoul
       SPRING_PROFILES_ACTIVE: docker
       SERVER_PORT: "8081"
       COOKIE_DOMAIN: ${COOKIE_DOMAIN}
@@ -560,6 +570,7 @@ services:
       start_period: 20s
     volumes:
       - ./logs/user-server-2:/app/logs
+#      - ./user-server/build/libs/user-server-0.0.1-SNAPSHOT.jar:/app/user-server.jar
     networks:
       - app-net
 
@@ -567,8 +578,10 @@ services:
     build:
       context: .
       dockerfile: chat-server/Dockerfile
+#    image: eclipse-temurin:17-jre-alpine
     container_name: chat-server-1
     restart: unless-stopped
+#    command: [ "java","-jar","./app/chat-server.jar" ]
     depends_on:
       mongo-chat:
         condition: service_started
@@ -579,6 +592,7 @@ services:
       minio:
         condition: service_started
     environment:
+      TZ: Asia/Seoul
       SPRING_PROFILES_ACTIVE: docker
       SERVER_PORT: "8082"
       COOKIE_DOMAIN: ${COOKIE_DOMAIN}
@@ -600,6 +614,7 @@ services:
       start_period: 20s
     volumes:
       - ./logs/chat-server-1:/app/logs
+#      - ./chat-server/build/libs/chat-server-0.0.1-SNAPSHOT.jar:/app/chat-server.jar
     networks:
       - app-net
 
@@ -607,8 +622,10 @@ services:
     build:
       context: .
       dockerfile: chat-server/Dockerfile
+#    image: eclipse-temurin:17-jre-alpine
     container_name: chat-server-2
     restart: unless-stopped
+#    command: [ "java","-jar","/app/chat-server.jar" ]
     depends_on:
       mongo-chat:
         condition: service_started
@@ -619,6 +636,7 @@ services:
       minio:
         condition: service_started
     environment:
+      TZ: Asia/Seoul
       SPRING_PROFILES_ACTIVE: docker
       SERVER_PORT: "8082"
       COOKIE_DOMAIN: ${COOKIE_DOMAIN}
@@ -640,6 +658,7 @@ services:
       start_period: 20s
     volumes:
       - ./logs/chat-server-2:/app/logs
+#      - ./chat-server/build/libs/chat-server-0.0.1-SNAPSHOT.jar:/app/chat-server.jar
     networks:
       - app-net
 

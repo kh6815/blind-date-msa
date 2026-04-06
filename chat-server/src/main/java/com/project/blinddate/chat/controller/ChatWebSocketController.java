@@ -4,9 +4,9 @@ import com.project.blinddate.chat.domain.MessageType;
 import com.project.blinddate.chat.dto.ChatMessageEvent;
 import com.project.blinddate.chat.dto.ChatMessageResponse;
 import com.project.blinddate.chat.dto.ChatMessageSendRequest;
-import com.project.blinddate.chat.repository.ChatRoomRepository;
 import com.project.blinddate.chat.service.ChatKafkaProducer;
 import com.project.blinddate.chat.service.ChatRedisPublisher;
+import com.project.blinddate.chat.service.ChatRoomCacheService;
 import com.project.blinddate.chat.service.ChatService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.messaging.handler.annotation.DestinationVariable;
@@ -19,6 +19,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
+// /pub
 @Controller
 @RequiredArgsConstructor
 public class ChatWebSocketController {
@@ -26,7 +27,7 @@ public class ChatWebSocketController {
     private final ChatService chatService;
     private final ChatRedisPublisher chatRedisPublisher;
     private final ChatKafkaProducer chatKafkaProducer;
-    private final ChatRoomRepository chatRoomRepository;
+    private final ChatRoomCacheService chatRoomCacheService;
 
     @MessageMapping("/chats/{roomId}")
     public void sendMessage(
@@ -44,11 +45,8 @@ public class ChatWebSocketController {
         Map<Long, Instant> readBy = new HashMap<>();
         readBy.put(request.getSenderUserId(), now);
 
-        // 채팅방 정보 조회하여 참여자 수 계산 (unreadCount 계산용)
-        int totalParticipants = chatRoomRepository.findById(roomId)
-                .map(room -> room.getParticipantUserIds() != null ? room.getParticipantUserIds().size() : 0)
-                .orElse(2); // 기본값 2 (1:1 채팅)
-
+        // 채팅방 참여자 수 조회 (캐시 우선)
+        int totalParticipants = chatRoomCacheService.getParticipantCount(roomId);
         int unreadCount = Math.max(0, totalParticipants - readBy.size());
 
         // 1. Redis 발행용 응답 객체 생성 (DB 저장 대기 없이 즉시 발행)

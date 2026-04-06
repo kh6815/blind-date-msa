@@ -39,6 +39,9 @@ public class ChatRoomResponse {
 
     @Schema(description = "마지막 메시지 미리보기")
     private final String lastMessagePreview;
+
+    @Schema(description = "읽지 않은 메시지 수")
+    private final Long unreadMessageCount;
 }
 
 

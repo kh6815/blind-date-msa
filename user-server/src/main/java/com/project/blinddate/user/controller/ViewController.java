@@ -49,11 +49,14 @@ public class ViewController {
     @Value("${user.presence.key-prefix}")
     private String USER_PRESENCE_KEY_PREFIX;
 
+    @Value("${user.presence.ttl-minutes}")
+    private long USER_PRESENCE_TTL_MINUTES;
+
     @Value("${user.auth.key-prefix}")
     private String USER_TOKEN_KEY_PREFIX;
 
-    private static final Duration USER_ACTIVITY_TTL = Duration.ofMinutes(30);
-    private static final Duration USER_TOKEN_TTL = Duration.ofHours(24);
+    @Value("${user.auth.ttl-minutes}")
+    private long USER_AUTH_TTL_MINUTES;
 
     @Value("${web.cookie.domain}")
     private String COOKIE_DOMAIN;
@@ -126,11 +129,11 @@ public class ViewController {
         // JWT Token 생성 및 Redis 저장 (로그인 세션) - Key를 토큰으로 설정 (유효성 검증용)
         String token = jwtTokenProvider.createToken(user.getId());
         String tokenKey = USER_TOKEN_KEY_PREFIX + token;
-        redisTemplate.opsForValue().set(tokenKey, String.valueOf(user.getId()), USER_TOKEN_TTL);
+        redisTemplate.opsForValue().set(tokenKey, String.valueOf(user.getId()), Duration.ofMinutes(USER_AUTH_TTL_MINUTES));
 
         // 온라인 상태 저장 (활동 감지용) - Key를 userId로 설정 (조회 편의성)
         String presenceKey = USER_PRESENCE_KEY_PREFIX + user.getId();
-        redisTemplate.opsForValue().set(presenceKey, "online", USER_ACTIVITY_TTL);
+        redisTemplate.opsForValue().set(presenceKey, "online", Duration.ofMinutes(USER_PRESENCE_TTL_MINUTES));
 
         // 쿠키에 JWT 저장 (URLEncoder로 공백/특수문자 처리)
         // Bearer prefix는 쿠키 값에 포함하거나, 서버에서 읽을 때 처리. 여기서는 포함.

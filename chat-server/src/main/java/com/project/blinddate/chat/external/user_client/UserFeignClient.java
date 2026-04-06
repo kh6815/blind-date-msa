@@ -11,9 +11,6 @@ import org.springframework.web.bind.annotation.RequestHeader;
 @FeignClient(name = "user-server", url = "${external.user-server.url}")
 public interface UserFeignClient {
 
-    @PostMapping("/api/v1/users/token/validate")
-    ResponseDto<Long> validateToken(@RequestHeader("Authorization") String authorization);
-
     @GetMapping("/api/v1/users/{userId}")
     ResponseDto<UserFeignResponse> getUserInfo(@PathVariable("userId") Long userId);
 }

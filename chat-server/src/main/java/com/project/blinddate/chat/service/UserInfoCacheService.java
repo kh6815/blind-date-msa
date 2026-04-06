@@ -23,8 +23,11 @@ public class UserInfoCacheService {
     private final ObjectMapper objectMapper;
     private final UserFeignClient userFeignClient;
 
-    private static final String USER_INFO_CACHE_PREFIX = "user:info:";
-    private static final long CACHE_TTL_HOURS = 24;
+    @Value("${user.info.cache-prefix}")
+    private String USER_INFO_CACHE_PREFIX;
+
+    @Value("${user.info.cache-ttl-hours}")
+    private long CACHE_TTL_HOURS;
 
     /**
      * Redis 캐시에서 사용자 정보 조회 (동기)

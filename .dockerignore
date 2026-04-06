@@ -6,23 +6,69 @@
 .project
 bin/
 out/
+*.iml
+*.ipr
+*.iws
 
 # Gradle
 .gradle
 build/
 **/build/
+**/.gradle/
+**/target/
 
 # Git
 .git
 .gitignore
+.gitattributes
 
 # Docker
-docker-compose.yml
-Dockerfile
+docker-compose*.yml
+**/Dockerfile
+.dockerignore
 
 # OS
 .DS_Store
+**/.DS_Store
+**/._.DS_Store
 Thumbs.db
 
 # Logs
 *.log
+**/logs/
+logs/
+
+# Documentation
+*.md
+*.pdf
+*.pptx
+CLAUDE.md
+DISK_SPACE_RECOVERY.md
+
+# Monitoring (exclude from build context)
+monitoring/
+
+# Scripts
+scripts/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Temporary files
+**/*.tmp
+**/*.temp
+**/*.swp
+**/*.bak
+
+# Test results
+**/test-results/
+**/.test/
+
+# Node modules (if any)
+**/node_modules/
+
+# Already built jars (we'll build fresh)
+**/*.jar
+!gradle/wrapper/*.jar

@@ -1,11 +1,8 @@
 package com.project.blinddate.chat.controller;
 
-import com.project.blinddate.chat.dto.ChatMessageReadEvent;
-import com.project.blinddate.chat.dto.ChatMessageReadRequest;
-import com.project.blinddate.chat.dto.ChatMessageResponse;
-import com.project.blinddate.chat.dto.ChatRoomCreateRequest;
-import com.project.blinddate.chat.dto.ChatRoomResponse;
-import com.project.blinddate.chat.dto.ChatRoomUnreadCountResponse;
+import com.project.blinddate.chat.dto.*;
+import com.project.blinddate.chat.service.ChatBadgeSseService;
+import com.project.blinddate.chat.service.ChatKafkaProducer;
 import com.project.blinddate.chat.service.ChatRedisPublisher;
 import com.project.blinddate.chat.service.ChatService;
 import com.project.blinddate.common.ApiPathConst;
@@ -15,16 +12,12 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
+import java.time.Instant;
 import java.util.List;
 
 @Tag(name = "Chat API", description = "채팅 도메인 REST API")
@@ -35,6 +28,8 @@ public class ChatController {
 
     private final ChatService chatService;
     private final ChatRedisPublisher chatRedisPublisher;
+    private final ChatKafkaProducer chatKafkaProducer;
+    private final ChatBadgeSseService chatBadgeSseService;
 
     @Operation(summary = "채팅방 생성", description = "참여 유저 목록으로 새로운 채팅방을 생성합니다.")
     @PostMapping("/rooms")
@@ -58,23 +53,30 @@ public class ChatController {
         return ResponseEntity.ok(ResponseDto.ok(response));
     }
 
-    @Operation(summary = "채팅방 메시지 읽음 처리", description = "특정 채팅방의 모든 메시지를 읽음 처리합니다.")
+    @Operation(summary = "채팅방 메시지 읽음 처리 (Timestamp 기반)", description = "특정 시간 이전의 모든 메시지를 읽음 처리합니다.")
     @PutMapping("/rooms/{roomId}/messages/read")
     public ResponseEntity<ResponseDto<ChatMessageReadEvent>> markMessagesAsRead(
             @PathVariable String roomId,
             @Valid @RequestBody ChatMessageReadRequest request
     ) {
-        List<String> updatedMessageIds = chatService.markMessagesAsRead(roomId, request.getUserId());
+        Instant now = Instant.now();
 
+        // 1. Timestamp 기반 읽음 처리 (readAt 이전의 모든 메시지 읽음)
+        int readMessageCount = chatService.markMessagesAsReadByTimestamp(roomId, request.getUserId(), now);
+
+        // 2. 경량 읽음 이벤트 생성 (메시지 ID 목록 대신 timestamp + 개수만 전송)
         ChatMessageReadEvent event = ChatMessageReadEvent.builder()
                 .roomId(roomId)
                 .userId(request.getUserId())
-                .readAt(java.time.Instant.now())
-                .messageIds(updatedMessageIds)
+                .readAt(now)
+                .readMessageCount(readMessageCount)
                 .build();
 
-        // WebSocket을 통해 읽음 이벤트를 채팅방의 다른 참여자에게 실시간 전송
+        // 3. WebSocket을 통해 읽음 이벤트를 채팅방의 다른 참여자에게 즉시 전송
         chatRedisPublisher.publishReadEvent(event);
+
+        // 4. Kafka에 읽음 이벤트 발행 (백업/감사 로그)
+        chatKafkaProducer.sendReadEvent(event);
 
         return ResponseEntity.ok(ResponseDto.ok(event));
     }
@@ -94,6 +96,27 @@ public class ChatController {
                 .build();
 
         return ResponseEntity.ok(ResponseDto.ok(response));
+    }
+
+    @Operation(summary = "읽지 않은 메시지 존재 여부 조회", description = "사용자에게 읽지 않은 메시지가 하나라도 있는지 확인합니다.")
+    @GetMapping("/has-unread")
+    public ResponseEntity<ResponseDto<ChatHasUnreadResponse>> hasUnreadMessages(
+            @Parameter(description = "사용자 ID", example = "1", required = true)
+            ChatUserIdRequest chatUserIdRequest
+    ) {
+        boolean hasUnread = chatService.hasUnreadMessages(chatUserIdRequest.getCurrentUserId());
+
+        ChatHasUnreadResponse response = ChatHasUnreadResponse.builder()
+                .hasUnread(hasUnread)
+                .build();
+
+        return ResponseEntity.ok(ResponseDto.ok(response));
+    }
+
+    @Operation(summary = "뱃지 업데이트 SSE 스트림", description = "사용자별 뱃지 업데이트 이벤트를 SSE로 수신합니다.")
+    @GetMapping(value = "/badge-stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public SseEmitter subscribeBadgeUpdates(ChatUserIdRequest chatUserIdRequest) {
+        return chatBadgeSseService.subscribe(chatUserIdRequest.getCurrentUserId());
     }
 }
 

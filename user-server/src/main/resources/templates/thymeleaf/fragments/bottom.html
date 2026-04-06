@@ -5,7 +5,10 @@
   </a>
   <a th:href="${@environment.getProperty('external.chat-server.url') + '/chats'}"
      class="nav-item" th:classappend="${active == 'chat' ? ' active' : ''}">
-    <i class="fas fa-comment-alt"></i>
+    <div class="nav-icon-wrapper">
+      <i class="fas fa-comment-alt"></i>
+      <span id="chatUnreadBadge" class="nav-unread-badge"></span>
+    </div>
   </a>
   <a href="#" class="nav-item" th:classappend="${active == 'like' ? ' active' : ''}">
     <i class="fas fa-heart"></i>
@@ -14,4 +17,53 @@
     <i class="fas fa-user"></i>
   </a>
 </nav>
+
+<script src="/js/common-cookie.js"></script>
+<script src="/js/common-ajax.js"></script>
+<script th:inline="javascript">
+  (function() {
+    const chatServerUrl = /*[[${@environment.getProperty('external.chat-server.url')}]]*/ '';
+
+    // 1. 페이지 로드 시 API로 초기 상태 조회
+    function loadUnreadBadge() {
+      fnApiGet(
+        chatServerUrl + '/api/v1/chats/has-unread',
+        true,  // async
+        {},    // headers
+        {},    // data
+        'json', // dataType
+        function(res) {
+          if (res && res.data && res.data.has_unread !== undefined) {
+            updateBadgeUI(res.data.has_unread);
+          }
+        }
+      );
+    }
+
+    // 2. SSE 연결 (자동 재연결 지원)
+    const eventSource = new EventSource(`${chatServerUrl}/api/v1/chats/badge-stream`, { withCredentials: true });
+
+    // 뱃지 업데이트 이벤트 수신
+    eventSource.addEventListener('badge-update', (e) => {
+      console.log('[Badge] Update received via SSE');
+      updateBadgeUI(true);
+    });
+
+    // 에러 핸들링 (자동 재연결됨)
+    eventSource.onerror = (error) => {
+      console.error('[Badge] SSE error:', error);
+    };
+
+    // 3. UI 업데이트
+    function updateBadgeUI(hasUnread) {
+      const badge = document.getElementById('chatUnreadBadge');
+      if (badge) {
+        badge.style.display = hasUnread ? 'block' : 'none';
+      }
+    }
+
+    // 페이지 로드 시 실행
+    loadUnreadBadge();
+  })();
+</script>
 </th:block>

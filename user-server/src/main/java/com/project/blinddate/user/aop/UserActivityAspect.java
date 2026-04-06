@@ -28,7 +28,9 @@ public class UserActivityAspect {
     
     @Value("${user.presence.key-prefix}")
     private String USER_PRESENCE_KEY_PREFIX;
-    private static final Duration USER_ACTIVITY_TTL = Duration.ofMinutes(30);
+
+    @Value("${user.presence.ttl-minutes}")
+    private long USER_PRESENCE_TTL_MINUTES;
 
     @Around("@within(org.springframework.stereotype.Controller) || @within(org.springframework.web.bind.annotation.RestController)")
     public Object updateUserActivityAndSetUserId(ProceedingJoinPoint joinPoint) throws Throwable{
@@ -42,9 +44,9 @@ public class UserActivityAspect {
 
             if (token != null && jwtTokenProvider.validateToken(token)) {
                 Long userId = jwtTokenProvider.getUserId(token);
-                // userId를 Key로 사용하여 온라인 상태 갱신
+                // userId를 Key로 사용하여 온라인 상태 갱신, JWT 토큰을 값으로 저장
                 String key = USER_PRESENCE_KEY_PREFIX + userId;
-                redisTemplate.opsForValue().set(key, "online", USER_ACTIVITY_TTL);
+                redisTemplate.opsForValue().set(key, "online", Duration.ofMinutes(USER_PRESENCE_TTL_MINUTES));
                 log.debug("Updated user activity for userId: {}", userId);
 
                 // UserIdRequest 타입이면 현재 userId로 교체

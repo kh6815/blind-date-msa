@@ -1,6 +1,9 @@
 <!doctype html>
 <html xmlns:th="http://www.thymeleaf.org" th:replace="~{thymeleaf/layout/common-layout :: layout(~{::section}, 'chat')}">
 <section>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/sockjs-client/1.6.1/sockjs.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
+
   <div th:if="${#lists.isEmpty(rooms)}" class="empty-state">
     <i class="fas fa-comments empty-icon"></i>
     <p>참여 중인 채팅방이 없습니다.</p>
@@ -8,17 +11,220 @@
       <i class="fas fa-search"></i> 친구 찾으러 가기
     </a>
   </div>
-  <a th:each="room : ${rooms}" th:href="@{'/chats/room/' + ${room.id}}" class="chat-item">
+  <a th:each="room : ${rooms}"
+     th:href="@{'/chats/room/' + ${room.id}}"
+     class="chat-item"
+     th:attr="data-room-id=${room.id}">
     <div class="avatar" th:style="'background-image: url(' + (${room.targetUserImageUrl != null ? room.targetUserImageUrl : 'https://randomuser.me/api/portraits/lego/1.jpg'}) + ')'"></div>
     <div class="chat-info">
       <div class="chat-name">
         <span th:text="${room.targetUserNickname}">닉네임</span>
-        <span class="chat-time" th:text="${room.lastMessageAt != null ? #temporals.format(room.lastMessageAt, 'yyyy-MM-dd HH:mm') : ''}"></span>
+        <span class="chat-time"
+              th:text="${room.lastMessageAt != null ? #temporals.format(room.lastMessageAt, 'yyyy-MM-dd HH:mm') : ''}"
+              th:attr="data-last-message-at=${room.lastMessageAt}"></span>
       </div>
-      <div class="chat-preview" th:text="${room.lastMessagePreview}">메시지 미리보기</div>
+      <div class="chat-preview"
+           th:text="${room.lastMessagePreview}"
+           th:attr="data-preview=${room.lastMessagePreview}">메시지 미리보기</div>
     </div>
+    <span th:if="${room.unreadMessageCount != null and room.unreadMessageCount > 0}"
+          class="unread-badge"
+          th:attr="data-unread=${room.unreadMessageCount}"
+          th:text="${room.unreadMessageCount >= 10 ? '10+' : room.unreadMessageCount}">1</span>
   </a>
   <div th:if="${hasNext}" class="load-more-container">
     <a th:href="@{'/chats'(page=${nextPage}, size=${size})}" class="btn-load-more">더 보기</a>
   </div>
+
+  <script th:inline="javascript">
+    /*<![CDATA[*/
+    const currentUserId = /*[[${userId}]]*/ 0;
+    const roomIds = /*[[${rooms}]]*/ [];
+
+    let stompClient = null;
+
+    const ChatListApp = {
+      init() {
+        // 페이지 로드 시 모든 시간을 상대 시간으로 변환
+        this.updateAllTimestamps();
+
+        // 1분마다 시간 업데이트 (59분 전 → 1시간 전)
+        setInterval(() => {
+          this.updateAllTimestamps();
+        }, 60000); // 60초
+
+        if (roomIds.length === 0) return;
+        this.connectWebSocket();
+      },
+
+      /**
+       * 페이지의 모든 타임스탬프를 상대 시간으로 변환
+       */
+      updateAllTimestamps() {
+        document.querySelectorAll('.chat-time').forEach(timeEl => {
+          const timestamp = timeEl.getAttribute('data-last-message-at');
+          if (timestamp) {
+            const date = new Date(timestamp);
+            timeEl.textContent = this.formatRelativeTime(date);
+          }
+        });
+      },
+
+      connectWebSocket() {
+        const socket = new SockJS("/ws/chat");
+        stompClient = Stomp.over(socket);
+        stompClient.debug = () => {};
+
+        stompClient.connect({}, () => {
+          console.log("WebSocket connected for chat list");
+
+          // 모든 채팅방 구독
+          roomIds.forEach(room => {
+            const roomId = room.id;
+
+            // 새 메시지 구독
+            stompClient.subscribe(`/topic/chats/${roomId}`, (msg) => {
+              this.handleNewMessage(roomId, JSON.parse(msg.body));
+            });
+
+
+              // // 읽음 이벤트 구독 -> 추후 멀티 탭/디바이스 지원이 필요할 경우 활성화
+              // stompClient.subscribe(`/topic/chats/${roomId}/read`, (msg) => {
+              //     this.handleReadEvent(roomId, JSON.parse(msg.body));
+              // });
+          });
+        }, () => {
+          console.log("WebSocket disconnected, reconnecting...");
+          setTimeout(() => this.connectWebSocket(), 5000);
+        });
+      },
+
+      handleNewMessage(roomId, message) {
+        // 내가 보낸 메시지는 무시 (이미 읽은 상태)
+        if (message.sender_user_id === currentUserId) {
+          this.updateLastMessage(roomId, message);
+          return;
+        }
+
+        // 다른 사람이 보낸 메시지: unreadCount +1
+        this.incrementUnreadCount(roomId);
+        this.updateLastMessage(roomId, message);
+      },
+
+      // handleReadEvent(roomId, readEvent) {
+      //   // 내가 읽은 경우: unreadCount 차감
+      //   if (readEvent.user_id === currentUserId) {
+      //     this.resetUnreadCount(roomId);
+      //   }
+      //   // 다른 사람이 읽은 경우: chat-list에서는 영향 없음
+      // },
+
+      incrementUnreadCount(roomId) {
+        const chatItem = document.querySelector(`.chat-item[data-room-id="${roomId}"]`);
+        if (!chatItem) return;
+
+        let badge = chatItem.querySelector('.unread-badge');
+        if (!badge) {
+          // badge가 없으면 생성
+          badge = document.createElement('span');
+          badge.className = 'unread-badge';
+          badge.setAttribute('data-unread', '0');
+          chatItem.appendChild(badge);
+        }
+
+        const currentCount = parseInt(badge.getAttribute('data-unread')) || 0;
+        const newCount = currentCount + 1;
+        badge.setAttribute('data-unread', newCount);
+        badge.textContent = newCount >= 10 ? '10+' : newCount;
+      },
+
+      // resetUnreadCount(roomId) {
+      //   const chatItem = document.querySelector(`.chat-item[data-room-id="${roomId}"]`);
+      //   if (!chatItem) return;
+      //
+      //   const badge = chatItem.querySelector('.unread-badge');
+      //   if (badge) {
+      //     badge.remove();
+      //   }
+      // },
+
+      updateLastMessage(roomId, message) {
+        const chatItem = document.querySelector(`.chat-item[data-room-id="${roomId}"]`);
+        if (!chatItem) return;
+
+        // 마지막 메시지 미리보기 업데이트
+        const preview = chatItem.querySelector('.chat-preview');
+        if (preview) {
+          const content = message.type === 'IMAGE' ? '이미지' : message.content;
+          preview.textContent = content;
+        }
+
+        // 마지막 메시지 시간 업데이트
+        const timeEl = chatItem.querySelector('.chat-time');
+        if (timeEl && message.sent_at) {
+          const sentDate = new Date(message.sent_at);
+          timeEl.setAttribute('data-last-message-at', message.sent_at);
+          timeEl.textContent = this.formatRelativeTime(sentDate);
+        }
+      },
+
+      /**
+       * 상대 시간 포맷 (카카오톡 스타일)
+       * - 1분 이내: "방금 전"
+       * - 1시간 이내: "N분 전"
+       * - 24시간 이내: "N시간 전"
+       * - 48시간 이내: "어제"
+       * - 그 이상: "MM-DD" 또는 "yyyy-MM-DD"
+       */
+      formatRelativeTime(date) {
+        const now = new Date();
+        const diffMs = now - date;
+        const diffMinutes = Math.floor(diffMs / (1000 * 60));
+        const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+        const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+        // 브라우저 언어 감지 (국제화 지원)
+        const locale = navigator.language || 'ko-KR';
+        const isKorean = locale.startsWith('ko');
+
+        // 1분 이내
+        if (diffMinutes < 1) {
+          return isKorean ? '방금 전' : 'Just now';
+        }
+
+        // 1시간 이내
+        if (diffMinutes < 60) {
+          if (isKorean) {
+            return `${diffMinutes}분 전`;
+          } else {
+            return `${diffMinutes}m ago`;
+          }
+        }
+
+        // 24시간 이내
+        if (diffHours < 24) {
+          if (isKorean) {
+            return `${diffHours}시간 전`;
+          } else {
+            return `${diffHours}h ago`;
+          }
+        }
+
+        // 어제 (24~48시간)
+        if (diffDays === 1) {
+          return isKorean ? '어제' : 'Yesterday';
+        }
+
+        // 그외 yyyy-MM-DD
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+      }
+    };
+
+    // 페이지 로드 시 WebSocket 연결
+    ChatListApp.init();
+    /*]]>*/
+  </script>
 </section>
