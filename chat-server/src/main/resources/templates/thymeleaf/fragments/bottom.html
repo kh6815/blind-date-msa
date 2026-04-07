@@ -35,7 +35,7 @@
     }
 
     // 2. SSE 연결 (자동 재연결 지원)
-    const eventSource = new EventSource('/api/v1/chats/badge-stream', { withCredentials: true });
+    const eventSource = new EventSource('/api/v1/chats/sse/badge-stream', { withCredentials: true });
 
     // 뱃지 업데이트 이벤트 수신
     eventSource.addEventListener('badge-update', (e) => {

@@ -11,6 +11,7 @@ public final class ApiPathConst {
 
     public static final String API_V1_PREFIX = "/api/v1";
     public static final String CHAT_API_PREFIX = API_V1_PREFIX + "/chats";
+    public static final String CHAT_SSE_API_PREFIX = API_V1_PREFIX + "/chats/sse";
 }
 
 

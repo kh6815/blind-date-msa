@@ -1,7 +1,6 @@
 package com.project.blinddate.chat.controller;
 
 import com.project.blinddate.chat.dto.*;
-import com.project.blinddate.chat.service.ChatBadgeSseService;
 import com.project.blinddate.chat.service.ChatKafkaProducer;
 import com.project.blinddate.chat.service.ChatRedisPublisher;
 import com.project.blinddate.chat.service.ChatService;
@@ -29,7 +28,6 @@ public class ChatController {
     private final ChatService chatService;
     private final ChatRedisPublisher chatRedisPublisher;
     private final ChatKafkaProducer chatKafkaProducer;
-    private final ChatBadgeSseService chatBadgeSseService;
 
     @Operation(summary = "채팅방 생성", description = "참여 유저 목록으로 새로운 채팅방을 생성합니다.")
     @PostMapping("/rooms")
@@ -111,12 +109,6 @@ public class ChatController {
                 .build();
 
         return ResponseEntity.ok(ResponseDto.ok(response));
-    }
-
-    @Operation(summary = "뱃지 업데이트 SSE 스트림", description = "사용자별 뱃지 업데이트 이벤트를 SSE로 수신합니다.")
-    @GetMapping(value = "/badge-stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public SseEmitter subscribeBadgeUpdates(ChatUserIdRequest chatUserIdRequest) {
-        return chatBadgeSseService.subscribe(chatUserIdRequest.getCurrentUserId());
     }
 }
 

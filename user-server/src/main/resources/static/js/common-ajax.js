@@ -62,6 +62,58 @@ function fnApiPut(url, isAsync, headers, data, dataType, call_func, error_func, 
     });
 }
 
+function fnApiPatch(url, isAsync, headers, data, dataType, call_func, error_func, complete_func) {
+    $.ajax({
+        url : url,
+        async : isAsync,
+        type : 'patch',
+        headers : headers ? headers : {},
+        contentType: 'application/json',
+        data : data ? JSON.stringify(data) : {},
+        dataType : dataType, // json or html
+        xhrFields: { withCredentials: true },
+        success : function(res) {
+            fnResCheck(dataType, res, call_func)
+        },
+        error: function(error) {
+            if (error_func) {
+                error_func(error);
+            } else {
+                fnErrorCheck(dataType, error);
+            }
+        },
+        complete: function(res) {
+            if (complete_func) complete_func(res);
+        }
+    });
+}
+
+function fnApiDelete(url, isAsync, headers, data, dataType, call_func, error_func, complete_func) {
+    $.ajax({
+        url : url,
+        async : isAsync,
+        type : 'delete',
+        headers : headers ? headers : {},
+        contentType: 'application/json',
+        data : data ? JSON.stringify(data) : {},
+        dataType : dataType, // json or html
+        xhrFields: { withCredentials: true },
+        success : function(res) {
+            fnResCheck(dataType, res, call_func)
+        },
+        error: function(error) {
+            if (error_func) {
+                error_func(error);
+            } else {
+                fnErrorCheck(dataType, error);
+            }
+        },
+        complete: function(res) {
+            if (complete_func) complete_func(res);
+        }
+    });
+}
+
 
 function fnApiUpload(url, headers, formData, call_func) {
     $.ajax({

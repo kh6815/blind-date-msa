@@ -17,7 +17,7 @@ public class ChatRedisSubscriber {
 
     private final ObjectMapper objectMapper;
     private final SimpMessagingTemplate messagingTemplate;
-    private final ChatBadgeSseService chatBadgeSseService;
+    private final SseService sseService;
 
     /**
      * 일반 채팅 메시지 처리 (Redis Pub/Sub → WebSocket)
@@ -56,7 +56,7 @@ public class ChatRedisSubscriber {
             log.info("📩 [Badge SSE] Received from Redis - targetUserId: {}", badgeEvent.getTargetUserId());
 
             // SSE를 통해 뱃지 업데이트 전송 (연결된 서버만 전송)
-            chatBadgeSseService.notifyBadgeUpdate(badgeEvent.getTargetUserId());
+            sseService.sendBadgeUpdateMessage(badgeEvent.getTargetUserId());
         } catch (JsonProcessingException e) {
             log.error("❌ [Badge SSE] Failed to deserialize unread badge event: {}", message, e);
         }
