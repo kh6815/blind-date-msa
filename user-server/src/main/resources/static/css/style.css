@@ -964,6 +964,31 @@ header {
   color: #121212;
 }
 
+.btn-like {
+  background-color: #333;
+  color: #fff;
+  border: none;
+  cursor: pointer;
+  font-size: inherit;
+}
+
+.btn-liked {
+  background-color: #e74c3c;
+  color: #fff;
+  border: none;
+  cursor: pointer;
+  font-size: inherit;
+}
+
+.like-count-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 12px;
+  font-size: 0.85rem;
+  color: #aaa;
+}
+
 .image-modal {
   display: none;
   position: fixed;

@@ -11,8 +11,13 @@
       <span id="chatUnreadBadge" class="nav-unread-badge"></span>
     </div>
   </a>
-  <a href="#" class="nav-item" th:classappend="${active == 'like' ? ' active' : ''}">
-    <i class="fas fa-heart"></i>
+  <a th:href="${@environment.getProperty('external.user-server.url') + '/likes'}"
+     class="nav-item"
+     th:classappend="${active == 'like' ? ' active' : ''}">
+    <div class="nav-icon-wrapper">
+      <i class="fas fa-heart"></i>
+      <span id="likeUnreadBadge" class="nav-unread-badge" style="display: none;"></span>
+    </div>
   </a>
   <a th:href="${@environment.getProperty('external.user-server.url')} + '/profile'"
      class="nav-item"
@@ -21,8 +26,6 @@
   </a>
 </nav>
 
-<script src="/js/common-cookie.js"></script>
-<script src="/js/common-ajax.js"></script>
 <script th:inline="javascript">
   (function() {
     // 1. 페이지 로드 시 API로 초기 상태 조회
@@ -58,6 +61,37 @@
 
     // 페이지 로드 시 실행
     loadUnreadBadge();
+  })();
+
+  // ── 좋아요 알림 배지 ──────────────────────────────────────────
+  (function () {
+    const userServerUrl = /*[[${@environment.getProperty('external.user-server.url')}]]*/ '';
+
+    // 1. 초기 미읽음 여부 조회
+    fnApiGet(userServerUrl + '/api/v1/likes/has-unread', true, {}, {}, 'json', function (res) {
+      if (res && res.data) {
+        updateLikeBadgeUI(res.data.has_unread);
+      }
+    });
+
+    // 2. SSE 연결 (user-server의 좋아요 알림 스트림)
+    const likeEventSource = new EventSource(userServerUrl + '/api/v1/users/sse/like-stream', { withCredentials: true });
+
+    likeEventSource.addEventListener('like-notification', function () {
+      updateLikeBadgeUI(true);
+    });
+
+    likeEventSource.onerror = function (e) {
+      console.error('[Like] SSE error:', e);
+    };
+
+    // 3. UI 업데이트
+    function updateLikeBadgeUI(hasUnread) {
+      const badge = document.getElementById('likeUnreadBadge');
+      if (badge) {
+        badge.style.display = hasUnread ? 'block' : 'none';
+      }
+    }
   })();
 </script>
 </th:block>

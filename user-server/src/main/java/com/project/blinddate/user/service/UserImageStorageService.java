@@ -71,8 +71,8 @@ public class UserImageStorageService {
             }
         }
 
-        // Delete from DB
-        userImageRepository.deleteByImageUrlIn(new ArrayList<>(targetUrls));
+        // Soft delete from DB
+        userImageRepository.softDeleteByImageUrlIn(new ArrayList<>(targetUrls));
 
         // Delete from Minio (Best effort)
         for (String url : imageUrls) {

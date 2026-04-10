@@ -1,5 +1,6 @@
 package com.project.blinddate.user.domain;
 
+import com.project.blinddate.common.BaseEntity;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -7,7 +8,7 @@ import lombok.*;
 @Entity
 @Table(name = "user_images")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class UserImage {
+public class UserImage extends BaseEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;

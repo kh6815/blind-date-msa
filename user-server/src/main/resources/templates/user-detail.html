@@ -145,16 +145,69 @@
             </div>
           </div>
 
+          <div class="like-count-row">
+            <i class="fas fa-heart" style="color: #e74c3c; font-size: 0.9rem;"></i>
+            <span id="likeCountText"
+                  th:data-count="${likeCount}"
+                  th:text="${likeCount} + '명이 좋아요를 눌렀습니다'"></span>
+          </div>
+
           <div class="action-buttons">
             <a href="/" class="btn-action btn-pass">
               <i class="fas fa-times"></i> Pass
             </a>
+            <button type="button"
+                    id="likeBtn"
+                    class="btn-action"
+                    th:classappend="${isLiked} ? 'btn-liked' : 'btn-like'"
+                    th:data-target-id="${user.id}"
+                    th:data-liked="${isLiked}">
+              <i class="fas fa-heart"></i>
+              <span id="likeBtnText" th:text="${isLiked} ? 'Liked' : 'Like'"></span>
+            </button>
             <a th:href="${@environment.getProperty('external.chat-server.url') + '/chats/room/create?targetUserId=' + user.id}"
               class="btn-action btn-chat"
             >
               <i class="fas fa-comment"></i> Chat
             </a>
           </div>
+
+          <script>
+            (function () {
+              const likeBtn = document.getElementById('likeBtn');
+              const likeBtnText = document.getElementById('likeBtnText');
+              const likeCountText = document.getElementById('likeCountText');
+
+              likeBtn.addEventListener('click', function () {
+                const targetId = Number(likeBtn.dataset.targetId);
+                const isLiked = likeBtn.dataset.liked === 'true';
+
+                function onSuccess() {
+                  const nowLiked = !isLiked;
+                  likeBtn.dataset.liked = nowLiked;
+
+                  if (nowLiked) {
+                    likeBtn.classList.replace('btn-like', 'btn-liked');
+                    likeBtnText.textContent = 'Liked';
+                  } else {
+                    likeBtn.classList.replace('btn-liked', 'btn-like');
+                    likeBtnText.textContent = 'Like';
+                  }
+
+                  const current = Number(likeCountText.dataset.count);
+                  const updated = nowLiked ? current + 1 : current - 1;
+                  likeCountText.dataset.count = updated;
+                  likeCountText.textContent = updated + '명이 좋아요를 눌렀습니다';
+                }
+
+                if (isLiked) {
+                  fnApiDelete('/api/v1/likes', true, {}, { targetUserId: targetId }, 'json', onSuccess);
+                } else {
+                  fnApiPost('/api/v1/likes', true, {}, { targetUserId: targetId }, 'json', onSuccess);
+                }
+              });
+            })();
+          </script>
         </div>
         <!-- Image Modal -->
         <div id="imageModal" class="image-modal">
