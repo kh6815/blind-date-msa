@@ -10,6 +10,7 @@ import com.project.blinddate.user.mapper.UserMapper;
 import com.project.blinddate.user.repository.UserImageRepository;
 import com.project.blinddate.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -23,6 +24,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class UserService {
@@ -59,6 +61,9 @@ public class UserService {
         // TODO: 비밀번호 해시 처리 (PasswordEncoder 연동 예정)
 
         User saved = userRepository.save(user);
+
+        userKafkaProducer.sendUserRegistered(saved.getId(), saved.getNickname(), saved.getProfileImageUrl());
+
         return userMapper.toResponse(saved);
     }
 
@@ -66,7 +71,7 @@ public class UserService {
     public UserResponse getUser(Long id) {
         User user = userRepository.findById(id)
             .orElseThrow(() -> new IllegalArgumentException("유저를 찾을 수 없습니다."));
-        java.util.List<String> imageUrls = userImageRepository.findByUser(user)
+        List<String> imageUrls = userImageRepository.findByUser(user)
             .stream()
             .map(UserImage::getImageUrl)
             .toList();
@@ -212,6 +217,15 @@ public class UserService {
         
         return response;
     }
+
+//    @Transactional
+//    public void deleteUser(Long userId) {
+//        User user = userRepository.findById(userId)
+//                .orElseThrow(() -> new IllegalArgumentException("유저를 찾을 수 없습니다."));
+//        user.softDelete();
+//        userKafkaProducer.sendUserDeleted(userId);
+//        log.info("User deleted: userId={}", userId);
+//    }
 
     @Transactional
     public void updateLocation(Long userId, Double latitude, Double longitude) {

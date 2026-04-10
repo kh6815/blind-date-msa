@@ -42,6 +42,14 @@ public class KafkaConfig {
      * @return ProducerFactory<String, String>
      */
     @Bean
+    public NewTopic userInfoUpdatedTopic() {
+        return TopicBuilder.name("user-info-updated")
+                .partitions(3)
+                .replicas(1)
+                .build();
+    }
+
+    @Bean
     public NewTopic chatMessageSaveTopic() {
         return TopicBuilder.name("chat-message-save")
                 .partitions(3)
