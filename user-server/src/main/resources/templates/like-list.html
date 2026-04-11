@@ -10,34 +10,105 @@
   </div>
 
   <!-- 좋아요 목록 -->
-  <div th:each="liker : ${likers}"
-       class="chat-item"
-       th:onclick="'location.href=\'/users/' + ${liker.userId} + '\''">
-    <div class="avatar"
-         th:style="'background-image: url(' + (${liker.profileImageUrl != null ? liker.profileImageUrl : 'https://randomuser.me/api/portraits/lego/1.jpg'}) + ')'">
-    </div>
-    <div class="chat-info">
-      <div class="chat-name">
-        <span th:text="${liker.nickname}">닉네임</span>
-        <span class="chat-time"
-              th:text="${liker.likedAt != null ? #temporals.format(liker.likedAt, 'yyyy-MM-dd HH:mm') : ''}">
-        </span>
-      </div>
-      <div class="chat-preview">
-        <i class="fas fa-heart" style="color: #e74c3c; font-size: 0.8rem; margin-right: 4px;"></i>
-        <span>회원님의 프로필에 좋아요를 눌렀습니다</span>
-      </div>
-    </div>
-    <!-- 미읽음 빨간 점 -->
-    <span th:if="${!liker.isRead}" class="unread-badge">N</span>
+  <div id="likerList">
+    <th:block th:fragment="likerItems">
+      <a th:each="liker : ${likers}"
+         class="like-item"
+         th:href="@{/users/{id}(id=${liker.userId})}">
+        <div class="avatar"
+             th:style="'background-image: url(' + (${liker.profileImageUrl != null ? liker.profileImageUrl : 'https://randomuser.me/api/portraits/lego/1.jpg'}) + ')'">
+        </div>
+        <div class="like-info">
+          <div class="like-name">
+            <span th:text="${liker.nickname}">닉네임</span>
+            <span class="like-time"
+                  th:text="${liker.likedAt != null ? #temporals.format(liker.likedAt, 'yyyy-MM-dd HH:mm') : ''}">
+            </span>
+          </div>
+          <div class="like-preview">
+              <div>
+                  <i class="fas fa-heart" style="color: #e74c3c; font-size: 0.8rem; margin-right: 4px;"></i>
+                  <span>회원님의 프로필에 좋아요를 눌렀습니다</span>
+              </div>
+              <!-- 미읽음 빨간 점 -->
+              <span th:if="${!liker.isRead}" class="unread-badge">N</span>
+          </div>
+        </div>
+      </a>
+    </th:block>
   </div>
 
-  <!-- 더 보기 -->
-  <div th:if="${hasNext}" class="load-more-container">
-    <a th:href="@{'/likes'(page=${nextPage}, size=${size})}" class="btn-load-more">더 보기</a>
+  <div id="loading" class="loading-indicator">
+    <i class="fas fa-spinner fa-spin loading-spinner"></i>
   </div>
+  <div id="sentinel" class="sentinel"></div>
 
-  <script>
+  <script th:inline="javascript">
+    /*<![CDATA[*/
+    let page = /*[[${nextPage}]]*/ 1;
+    let hasNext = /*[[${hasNext}]]*/ false;
+    let isLoading = false;
+    const size = /*[[${size}]]*/ 20;
+
+    const loadingIndicator = document.getElementById("loading");
+    const sentinel = document.getElementById("sentinel");
+    const likerList = document.getElementById("likerList");
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasNext && !isLoading) {
+          loadMoreLikers();
+        }
+      },
+      {
+        root: null,
+        rootMargin: "0px",
+        threshold: 0.1,
+      }
+    );
+
+    if (hasNext) {
+      observer.observe(sentinel);
+    }
+
+    function loadMoreLikers() {
+      if (isLoading || !hasNext) return;
+
+      isLoading = true;
+      loadingIndicator.style.display = "block";
+
+      const params = new URLSearchParams();
+      params.set("page", page);
+      params.set("size", size);
+
+      fnApiGet("/likes/list", true, {}, params.toString(), 'html',
+        function(html) {
+          isLoading = false;
+          loadingIndicator.style.display = "none";
+
+          if (!html || html.trim().length === 0) {
+            hasNext = false;
+            observer.unobserve(sentinel);
+            return;
+          }
+
+          const tempDiv = document.createElement("div");
+          tempDiv.innerHTML = html;
+
+          const newItems = Array.from(tempDiv.children);
+          if (newItems.length === 0) {
+            hasNext = false;
+            observer.unobserve(sentinel);
+          } else {
+            newItems.forEach((item) => {
+              likerList.appendChild(item);
+            });
+            page++;
+          }
+        }
+      );
+    }
+
     // 페이지 로드 완료 후 읽음 처리 (후처리 — 렌더링엔 영향 없음)
     document.addEventListener('DOMContentLoaded', function () {
       fnApiPatch('/api/v1/likes/read', true, {}, {}, 'json', function () {
@@ -48,6 +119,7 @@
         // });
       });
     });
+    /*]]>*/
   </script>
 
 </section>

@@ -145,6 +145,9 @@
 
         fnApiGet("/users/list", true, {}, params.toString(), 'html',
           function(html) {
+            isLoading = false;
+            loadingIndicator.style.display = "none";
+
             // Check if HTML is empty or whitespace
             if (!html || html.trim().length === 0) {
               hasNext = false;
@@ -172,13 +175,6 @@
               // the count might be size - 1. So it's safer to keep going until empty.
             }
           },
-          function(error) {
-            console.error("Error fetching users:", error);
-          },
-          function() {
-            isLoading = false;
-            loadingIndicator.style.display = "none";
-          }
         );
       }
       /*]]>*/

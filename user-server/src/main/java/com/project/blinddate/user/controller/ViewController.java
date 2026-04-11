@@ -207,6 +207,22 @@ public class ViewController {
         return "like-list";
     }
 
+    @GetMapping("/likes/list")
+    public String getLikeList(
+            Model model,
+            UserIdRequest userIdRequest,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size
+    ) {
+        if (userIdRequest.getId() == null) return "redirect:/login";
+
+        PageRequest pageable = PageRequest.of(page, size);
+        Page<LikeNotificationResponse> likers = userLikeService.getLikers(userIdRequest.getId(), pageable);
+
+        model.addAttribute("likers", likers.getContent());
+        return "like-list :: likerItems";
+    }
+
     @GetMapping("/profile")
     public String profile(Model model, UserIdRequest userIdRequest) {
         if (userIdRequest.getId() == null) return "redirect:/login";

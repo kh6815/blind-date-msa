@@ -38,12 +38,22 @@ public class UserLikeService {
             throw new IllegalStateException("이미 좋아요를 눌렀습니다.");
         }
 
-        userLikeRepository.save(UserLike.builder()
-                .actor(actor)
-                .target(target)
-                .build());
-
-        log.info("Like saved: actorId={} -> targetId={}", actorId, targetId);
+        // Soft delete된 좋아요가 있는지 확인하고, 있으면 복원
+        userLikeRepository.findByActorAndTargetAndDelYnTrue(actor, target)
+                .ifPresentOrElse(
+                        existingLike -> {
+                            existingLike.restore();
+                            existingLike.resetReadStatus();
+                            log.info("Like restored: actorId={} -> targetId={}", actorId, targetId);
+                        },
+                        () -> {
+                            userLikeRepository.save(UserLike.builder()
+                                    .actor(actor)
+                                    .target(target)
+                                    .build());
+                            log.info("Like saved: actorId={} -> targetId={}", actorId, targetId);
+                        }
+                );
 
         // Redis Pub/Sub으로 모든 user-server 인스턴스에 좋아요 이벤트 전파
         userLikeRedisPublisher.publishLikeNotification(
@@ -100,12 +110,12 @@ public class UserLikeService {
         User target = userRepository.findById(targetId)
                 .orElseThrow(() -> new IllegalArgumentException("유저를 찾을 수 없습니다."));
 
-        return userLikeRepository.findByTargetAndDelYnFalseOrderByCreatedAtDesc(target, pageable)
+        return userLikeRepository.findByTargetAndDelYnFalseOrderByUpdatedAtDesc(target, pageable)
                 .map(like -> LikeNotificationResponse.builder()
                         .userId(like.getActor().getId())
                         .nickname(like.getActor().getNickname())
                         .profileImageUrl(like.getActor().getProfileImageUrl())
-                        .likedAt(like.getCreatedAt())
+                        .likedAt(like.getUpdatedAt())
                         .isRead(like.isRead())
                         .build());
     }

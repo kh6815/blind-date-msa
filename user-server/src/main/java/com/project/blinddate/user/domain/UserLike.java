@@ -45,4 +45,8 @@ public class UserLike extends BaseEntity {
         this.actor = actor;
         this.target = target;
     }
+
+    public void resetReadStatus() {
+        this.isRead = false;
+    }
 }

@@ -18,9 +18,12 @@ public interface UserLikeRepository extends JpaRepository<UserLike, Long> {
 
     Optional<UserLike> findByActorAndTargetAndDelYnFalse(User actor, User target);
 
+    Optional<UserLike> findByActorAndTargetAndDelYnTrue(User actor, User target);
+
     long countByTargetAndDelYnFalse(User target);
 
-    Page<UserLike> findByTargetAndDelYnFalseOrderByCreatedAtDesc(User target, Pageable pageable);
+//    Page<UserLike> findByTargetAndDelYnFalseOrderByCreatedAtDesc(User target, Pageable pageable);
+    Page<UserLike> findByTargetAndDelYnFalseOrderByUpdatedAtDesc(User target, Pageable pageable);
 
     @Query("SELECT COUNT(ul) > 0 FROM UserLike ul WHERE ul.target.id = :targetId AND ul.isRead = false AND ul.delYn = false")
     boolean existsUnreadByTargetId(@Param("targetId") Long targetId);

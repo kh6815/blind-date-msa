@@ -62,6 +62,15 @@ public class RequestLoggingFilter extends OncePerRequestFilter {
             return;
         }
 
+        // SSE(Server-Sent Events) 제외
+        // ContentCachingResponseWrapper가 finally에서 copyBodyToResponse()를 호출하면
+        // content-length를 고정하고 flush해버려 브라우저가 응답 종료로 인식 → 재연결 반복
+        String acceptHeader = servletRequest.getHeader("Accept");
+        if (acceptHeader != null && acceptHeader.contains("text/event-stream")) {
+            filterChain.doFilter(servletRequest, servletResponse);
+            return;
+        }
+
         ContentCachingRequestWrapper request = new ContentCachingRequestWrapper(servletRequest);
         ContentCachingResponseWrapper response = new ContentCachingResponseWrapper(servletResponse);
 
