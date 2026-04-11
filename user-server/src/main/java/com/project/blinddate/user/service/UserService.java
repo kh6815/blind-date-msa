@@ -40,7 +40,7 @@ public class UserService {
 
     @Transactional
     public UserResponse login(String email, String password) {
-        User user = userRepository.findByEmail(email)
+        User user = userRepository.findByEmailAndDelYnFalse(email)
                 .orElseThrow(() -> new IllegalArgumentException("이메일 또는 비밀번호가 올바르지 않습니다."));
 
         // Simple password check (plaintext for now as per init data)
@@ -53,7 +53,7 @@ public class UserService {
 
     @Transactional
     public UserResponse register(UserRegisterRequest request) {
-        if (userRepository.existsByEmail(request.getEmail())) {
+        if (userRepository.existsByEmailAndDelYnFalse(request.getEmail())) {
             throw new IllegalArgumentException("이미 사용 중인 이메일입니다.");
         }
 
@@ -71,7 +71,7 @@ public class UserService {
     public UserResponse getUser(Long id) {
         User user = userRepository.findById(id)
             .orElseThrow(() -> new IllegalArgumentException("유저를 찾을 수 없습니다."));
-        List<String> imageUrls = userImageRepository.findByUser(user)
+        List<String> imageUrls = userImageRepository.findByUserAndDelYnFalse(user)
             .stream()
             .map(UserImage::getImageUrl)
             .toList();
@@ -185,7 +185,7 @@ public class UserService {
         UserResponse baseResponse = userMapper.toResponse(user);
 
         // Refresh images from DB to ensure deleted images are gone
-        List<String> imageUrls = userImageRepository.findByUser(user)
+        List<String> imageUrls = userImageRepository.findByUserAndDelYnFalse(user)
                 .stream()
                 .map(UserImage::getImageUrl)
                 .toList();

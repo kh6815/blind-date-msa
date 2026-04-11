@@ -31,6 +31,7 @@ class UserRepositoryImpl implements UserRepositoryQuery {
         return queryFactory
                 .selectFrom(user)
                 .where(
+                        user.delYn.isFalse(),
                         genderEq(gender),
                         mbtiEq(mbti),
                         interestsContainsAny(interests)
@@ -44,6 +45,7 @@ class UserRepositoryImpl implements UserRepositoryQuery {
         List<User> content = queryFactory
                 .selectFrom(user)
                 .where(
+                        user.delYn.isFalse(),
                         genderEq(condition.getGender()),
                         mbtiEq(condition.getMbti()),
                         locationEq(condition.getLocation()),
@@ -58,6 +60,7 @@ class UserRepositoryImpl implements UserRepositoryQuery {
                 .select(user.count())
                 .from(user)
                 .where(
+                        user.delYn.isFalse(),
                         genderEq(condition.getGender()),
                         mbtiEq(condition.getMbti()),
                         locationEq(condition.getLocation()),
@@ -118,6 +121,7 @@ class UserRepositoryImpl implements UserRepositoryQuery {
         List<User> content = queryFactory
                 .selectFrom(user)
                 .where(
+                        user.delYn.isFalse(),
                         user.latitude.isNotNull(),
                         user.longitude.isNotNull(),
                         genderEq(condition.getGender()),
@@ -135,6 +139,7 @@ class UserRepositoryImpl implements UserRepositoryQuery {
                 .select(user.count())
                 .from(user)
                 .where(
+                        user.delYn.isFalse(),
                         user.latitude.isNotNull(),
                         user.longitude.isNotNull(),
                         genderEq(condition.getGender()),

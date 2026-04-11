@@ -15,6 +15,10 @@ server:
   port: 8082
   forward-headers-strategy: framework
 
+app:
+  #  display-name: GRIZZLY
+  display-name: BLIND-DATE
+
 spring:
   application:
     name: chat-server
@@ -27,10 +31,6 @@ spring:
           user-server:
             connect-timeout: 3000
             read-timeout: 3000
-
-app:
-#  display-name: GRIZZLY
-  display-name: BLIND-DATE
 
   data:
     mongodb:
@@ -52,8 +52,8 @@ app:
 
   servlet:
     multipart:
-      max-file-size: 20MB
-      max-request-size: 20MB
+      max-file-size: 50MB
+      max-request-size: 50MB
 
 chat:
   kafka:

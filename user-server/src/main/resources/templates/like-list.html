@@ -1,0 +1,126 @@
+<!doctype html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{thymeleaf/layout/common-layout :: layout(~{::section}, ${false}, 'like')}">
+<section>
+
+  <!-- 빈 상태 -->
+  <div th:if="${#lists.isEmpty(likers)}" class="empty-state">
+    <i class="fas fa-heart empty-icon" style="color: #555;"></i>
+    <p>아직 좋아요를 보낸 사람이 없습니다.</p>
+  </div>
+
+  <!-- 좋아요 목록 -->
+  <div id="likerList">
+    <th:block th:fragment="likerItems">
+      <a th:each="liker : ${likers}"
+         class="like-item"
+         th:href="@{/users/{id}(id=${liker.userId})}">
+        <div class="avatar"
+             th:style="'background-image: url(' + (${liker.profileImageUrl != null ? liker.profileImageUrl : 'https://randomuser.me/api/portraits/lego/1.jpg'}) + ')'">
+        </div>
+        <div class="like-info">
+          <div class="like-name">
+            <span th:text="${liker.nickname}">닉네임</span>
+            <span class="like-time"
+                  th:text="${liker.likedAt != null ? #temporals.format(liker.likedAt, 'yyyy-MM-dd HH:mm') : ''}">
+            </span>
+          </div>
+          <div class="like-preview">
+              <div>
+                  <i class="fas fa-heart" style="color: #e74c3c; font-size: 0.8rem; margin-right: 4px;"></i>
+                  <span>회원님의 프로필에 좋아요를 눌렀습니다</span>
+              </div>
+              <!-- 미읽음 빨간 점 -->
+              <span th:if="${!liker.isRead}" class="unread-badge">N</span>
+          </div>
+        </div>
+      </a>
+    </th:block>
+  </div>
+
+  <div id="loading" class="loading-indicator">
+    <i class="fas fa-spinner fa-spin loading-spinner"></i>
+  </div>
+  <div id="sentinel" class="sentinel"></div>
+
+  <script th:inline="javascript">
+    /*<![CDATA[*/
+    let page = /*[[${nextPage}]]*/ 1;
+    let hasNext = /*[[${hasNext}]]*/ false;
+    let isLoading = false;
+    const size = /*[[${size}]]*/ 20;
+
+    const loadingIndicator = document.getElementById("loading");
+    const sentinel = document.getElementById("sentinel");
+    const likerList = document.getElementById("likerList");
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasNext && !isLoading) {
+          loadMoreLikers();
+        }
+      },
+      {
+        root: null,
+        rootMargin: "0px",
+        threshold: 0.1,
+      }
+    );
+
+    if (hasNext) {
+      observer.observe(sentinel);
+    }
+
+    function loadMoreLikers() {
+      if (isLoading || !hasNext) return;
+
+      isLoading = true;
+      loadingIndicator.style.display = "block";
+
+      const params = new URLSearchParams();
+      params.set("page", page);
+      params.set("size", size);
+
+      fnApiGet("/likes/list", true, {}, params.toString(), 'html',
+        function(html) {
+          isLoading = false;
+          loadingIndicator.style.display = "none";
+
+          if (!html || html.trim().length === 0) {
+            hasNext = false;
+            observer.unobserve(sentinel);
+            return;
+          }
+
+          const tempDiv = document.createElement("div");
+          tempDiv.innerHTML = html;
+
+          const newItems = Array.from(tempDiv.children);
+          if (newItems.length === 0) {
+            hasNext = false;
+            observer.unobserve(sentinel);
+          } else {
+            newItems.forEach((item) => {
+              likerList.appendChild(item);
+            });
+            page++;
+          }
+        }
+      );
+    }
+
+    // 페이지 로드 완료 후 읽음 처리 (후처리 — 렌더링엔 영향 없음)
+    document.addEventListener('DOMContentLoaded', function () {
+      fnApiPatch('/api/v1/likes/read', true, {}, {}, 'json', function () {
+        // 읽음 처리 성공 시 배지 숨김
+        // 나중에 페이지 다시 로드 하면 읽음 처리됨
+        // document.querySelectorAll('.unread-badge').forEach(function (badge) {
+        //   badge.style.display = 'none';
+        // });
+      });
+    });
+    /*]]>*/
+  </script>
+
+</section>
+</html>

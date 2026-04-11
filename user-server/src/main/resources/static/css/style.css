@@ -415,21 +415,6 @@ header {
   color: var(--text-secondary);
 }
 
-.chat-list {
-  flex: 1;
-  overflow-y: auto;
-  padding: 0 20px;
-}
-
-.chat-item {
-  display: flex;
-  align-items: center;
-  padding: 15px 0;
-  border-bottom: 1px solid #333;
-  text-decoration: none;
-  color: inherit;
-}
-
 .avatar {
   width: 50px;
   height: 50px;
@@ -440,30 +425,49 @@ header {
   background-position: center;
 }
 
-.chat-info {
+/* Like List (same styling as chat list) */
+.like-item {
+    display: flex;
+    align-items: center;
+    padding: 15px 0;
+    margin: 0 20px;
+    border-bottom: 1px solid #e9ecef;
+    text-decoration: none;
+    color: inherit;
+}
+
+.like-info {
   flex: 1;
 }
 
-.chat-name {
+.like-name {
   font-weight: bold;
   margin-bottom: 5px;
   display: flex;
   justify-content: space-between;
 }
 
-.chat-time {
+.like-time {
   font-size: 0.8rem;
   color: var(--text-secondary);
   font-weight: normal;
 }
 
-.chat-preview {
+.like-preview {
   color: var(--text-secondary);
   font-size: 0.9rem;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 250px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.empty-state {
+    padding: 15px 20px;
+    text-align: center;
+    color: gray;
 }
 
 .unread-badge {
@@ -962,6 +966,31 @@ header {
 .btn-chat {
   background-color: var(--accent-color);
   color: #121212;
+}
+
+.btn-like {
+  background-color: #333;
+  color: #fff;
+  border: none;
+  cursor: pointer;
+  font-size: inherit;
+}
+
+.btn-liked {
+  background-color: #e74c3c;
+  color: #fff;
+  border: none;
+  cursor: pointer;
+  font-size: inherit;
+}
+
+.like-count-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 12px;
+  font-size: 0.85rem;
+  color: #aaa;
 }
 
 .image-modal {
