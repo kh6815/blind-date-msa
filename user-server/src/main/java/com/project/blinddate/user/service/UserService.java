@@ -243,6 +243,51 @@ public class UserService {
                 .filter(StringUtils::hasText)
                 .toList();
     }
+
+    /**
+     * 프로필 완성도 계산
+     * @param userId 유저 ID
+     * @return 프로필 완성도 (0-100)
+     */
+    @Transactional(readOnly = true)
+    public int calculateProfileCompleteness(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("유저를 찾을 수 없습니다."));
+
+        int completeness = 0;
+
+        // 1. 프로필 사진 (10%)
+        if (StringUtils.hasText(user.getProfileImageUrl())) {
+            completeness += 10;
+        }
+
+        // 2. 추가 이미지 (최대 5장, 각 10% = 50%)
+        List<UserImage> userImages = userImageRepository.findByUserAndDelYnFalse(user);
+        int imageCount = Math.min(userImages.size(), 5);
+        completeness += imageCount * 10;
+
+        // 3. 직업 (10%)
+        if (StringUtils.hasText(user.getJob())) {
+            completeness += 10;
+        }
+
+        // 4. MBTI (10%)
+        if (StringUtils.hasText(user.getMbti())) {
+            completeness += 10;
+        }
+
+        // 5. 관심사 (10%)
+        if (StringUtils.hasText(user.getInterests())) {
+            completeness += 10;
+        }
+
+        // 6. 자기소개 (10%)
+        if (StringUtils.hasText(user.getDescription())) {
+            completeness += 10;
+        }
+
+        return completeness;
+    }
 }
 
 

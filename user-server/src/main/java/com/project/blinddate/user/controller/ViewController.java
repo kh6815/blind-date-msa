@@ -12,6 +12,7 @@ import com.project.blinddate.user.security.JwtTokenProvider;
 import com.project.blinddate.user.service.UserImageStorageService;
 import com.project.blinddate.user.service.UserLikeService;
 import com.project.blinddate.user.service.UserService;
+import com.project.blinddate.user.service.UserViewService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
@@ -45,6 +46,7 @@ public class ViewController {
     private final UserService userService;
     private final UserLikeService userLikeService;
     private final UserImageStorageService userImageStorageService;
+    private final UserViewService userViewService;
     private final JwtTokenProvider jwtTokenProvider;
     private final StringRedisTemplate redisTemplate;
 
@@ -176,6 +178,9 @@ public class ViewController {
     ) {
         if (userIdRequest.getId() == null) return "redirect:/login";
 
+        // 조회수 기록 (자기 자신의 프로필 조회는 기록하지 않음)
+        userViewService.recordView(userIdRequest.getId(), id);
+
         UserResponse targetUser = userService.getUser(id);
         boolean isLiked = userLikeService.isLiked(userIdRequest.getId(), id);
         long likeCount = userLikeService.getLikeCount(id);
@@ -227,8 +232,22 @@ public class ViewController {
     public String profile(Model model, UserIdRequest userIdRequest) {
         if (userIdRequest.getId() == null) return "redirect:/login";
 
-        UserResponse user = userService.getUser(userIdRequest.getId());
+        Long userId = userIdRequest.getId();
+        UserResponse user = userService.getUser(userId);
+
+        // 프로필 완성도 계산
+        int completeness = userService.calculateProfileCompleteness(userId);
+
+        // 조회수 조회
+        long viewCount = userViewService.getViewCount(userId);
+
+        // 좋아요 수 조회
+        long likeCount = userLikeService.getLikeCount(userId);
+
         model.addAttribute("user", user);
+        model.addAttribute("completeness", completeness);
+        model.addAttribute("viewCount", viewCount);
+        model.addAttribute("likeCount", likeCount);
         model.addAttribute("activeTab", "profile");
         return "profile";
     }

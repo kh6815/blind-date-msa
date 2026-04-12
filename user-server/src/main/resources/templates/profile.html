@@ -12,16 +12,16 @@
     <div class="online-status-text">● Online</div>
     <div class="stats-card">
       <div class="stat-item">
-        <div class="stat-value">85%</div>
+        <div class="stat-value" th:text="${completeness} + '%'">85%</div>
         <div class="stat-label">COMPLETE</div>
       </div>
       <div class="stat-item">
-        <div class="stat-value"><i class="fas fa-eye"></i> 127</div>
+        <div class="stat-value"><i class="fas fa-eye"></i> <span th:text="${viewCount}">127</span></div>
         <div class="stat-label">VIEWS</div>
       </div>
       <div class="stat-item">
-        <div class="stat-value"><i class="fas fa-heart"></i> 34</div>
-        <div class="stat-label">MATCHES</div>
+        <div class="stat-value"><i class="fas fa-heart"></i> <span th:text="${likeCount}">34</span></div>
+        <div class="stat-label">LIKES</div>
       </div>
     </div>
     <div class="menu-list">
