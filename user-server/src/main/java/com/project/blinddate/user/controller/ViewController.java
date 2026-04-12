@@ -112,7 +112,21 @@ public class ViewController {
     }
 
     @GetMapping("/login")
-    public String loginPage() {
+    public String loginPage(
+            @RequestParam(required = false) String email,
+            @RequestParam(required = false) String password,
+            HttpServletResponse response
+    ) {
+        // 쿼리 파라미터로 email과 password가 모두 있으면 자동 로그인
+        if (email != null && password != null && !email.isEmpty() && !password.isEmpty()) {
+            try {
+                return login(email, password, response);
+            } catch (Exception e) {
+                log.error("Auto login failed for email: {}", email, e);
+                // 자동 로그인 실패 시 일반 로그인 페이지 표시
+                return "login";
+            }
+        }
         return "login";
     }
 
