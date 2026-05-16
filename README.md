@@ -12,41 +12,41 @@
     <tr>
       <td align="center" width="50%" valign="top">
         <b>1. 메인화면</b><br/><br/>
-        <img src="screenshot/%E1%84%86%E1%85%A6%E1%84%8B%E1%85%B5%E1%86%AB%20%E1%84%92%E1%85%AA%E1%84%86%E1%85%A7%E1%86%AB.png" width="400px"/>
+        <img src="screenshot/main-screen.png" width="400px"/>
       </td>
       <td align="center" width="50%" valign="top">
         <b>2. 상대 유저 디테일 화면</b><br/><br/>
-        <img src="screenshot/%E1%84%8B%E1%85%B2%E1%84%8C%E1%85%A5%20%E1%84%83%E1%85%B5%E1%84%90%E1%85%A6%E1%84%8B%E1%85%B5%E1%86%AF%20%E1%84%92%E1%85%AA%E1%84%86%E1%85%A7%E1%86%AB.png" width="400px"/>
+        <img src="screenshot/user-detail.png" width="400px"/>
       </td>
     </tr>
     <tr>
       <td align="center" width="50%" valign="top">
         <b>3. 좋아요 버튼 및 채팅 시 알림</b><br/><br/>
-        <img src="screenshot/%E1%84%8C%E1%85%A9%E1%87%82%E1%84%8B%E1%85%A1%E1%84%8B%E1%85%AD%20%E1%84%86%E1%85%B5%E1%86%BE%20%E1%84%8E%E1%85%A2%E1%84%90%E1%85%B5%E1%86%BC%E1%84%89%E1%85%B5%20%E1%84%8B%E1%85%A1%E1%86%AF%E1%84%85%E1%85%B5%E1%86%B7.png" width="400px"/>
+        <img src="screenshot/like-and-chat-notification.png" width="400px"/>
       </td>
       <td align="center" width="50%" valign="top">
         <b>4. 채팅방 목록</b><br/><br/>
-        <img src="screenshot/%E1%84%8E%E1%85%A2%E1%84%90%E1%85%B5%E1%86%BC%E1%84%87%E1%85%A1%E1%86%BC%20%E1%84%86%E1%85%A9%E1%86%A8%E1%84%85%E1%85%A9%E1%86%A8.png" width="400px"/>
+        <img src="screenshot/chat-room-list.png" width="400px"/>
       </td>
     </tr>
     <tr>
       <td align="center" width="50%" valign="top">
         <b>5. 두 유저 채팅 진행</b><br/><br/>
-        <img src="screenshot/%E1%84%83%E1%85%AE%20%E1%84%8B%E1%85%B2%E1%84%8C%E1%85%A5%20%E1%84%8E%E1%85%A2%E1%84%90%E1%85%B5%E1%86%BC%20%E1%84%8C%E1%85%B5%E1%86%AB%E1%84%92%E1%85%A2%E1%86%BC.png" width="400px"/>
+        <img src="screenshot/two-users-chatting.png" width="400px"/>
       </td>
       <td align="center" width="50%" valign="top">
         <b>6. 좋아요 목록</b><br/><br/>
-        <img src="screenshot/%E1%84%8C%E1%85%A9%E1%87%82%E1%84%8B%E1%85%A1%E1%84%8B%E1%85%AD%20%E1%84%86%E1%85%A9%E1%86%A8%E1%84%85%E1%85%A9%E1%86%A8.png" width="400px"/>
+        <img src="screenshot/like-list.png" width="400px"/>
       </td>
     </tr>
     <tr>
       <td align="center" width="50%" valign="top">
         <b>7. 내 프로필 정보</b><br/><br/>
-        <img src="screenshot/%E1%84%86%E1%85%A1%E1%84%8B%E1%85%B5%20%E1%84%91%E1%85%B3%E1%84%85%E1%85%A9%E1%84%91%E1%85%B5%E1%86%AF%20%E1%84%8C%E1%85%A5%E1%86%BC%E1%84%87%E1%85%A9.png" width="400px"/>
+        <img src="screenshot/my-profile.png" width="400px"/>
       </td>
       <td align="center" width="50%" valign="top">
         <b>8. 내 정보 수정</b><br/><br/>
-        <img src="screenshot/%E1%84%82%E1%85%A2%20%E1%84%8C%E1%85%A5%E1%86%BC%E1%84%87%E1%85%A9%E1%84%89%E1%85%AE%E1%84%8C%E1%85%A5%E1%86%BC.png" width="400px"/>
+        <img src="screenshot/edit-profile.png" width="400px"/>
       </td>
     </tr>
   </table>
@@ -161,7 +161,7 @@ curl http://localhost:8082/api/v1/chats/health
 
 `user-server`와 `chat-server`를 분리하고, Kafka 이벤트와 Redis·MongoDB·MySQL·MinIO를 활용해 **느슨한 결합 + 수평 확장**이 가능한 구조로 설계했습니다.
 
-![아키텍처.jpg](%E1%84%8B%E1%85%A1%E1%84%8F%E1%85%B5%E1%84%90%E1%85%A6%E1%86%A8%E1%84%8E%E1%85%A5.jpg)
+![architecture](architecture.jpg)
 
 ### MSA 구조
 
