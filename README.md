@@ -52,16 +52,6 @@
   </table>
 </div>
 
-## 라이브 데모
-
-> **Note**: 라이브 배포 환경은 현재 중단된 상태입니다.
->
-> Docker Compose로 전체 MSA 환경을 로컬에서 즉시 실행 가능합니다.
-
-**이전 운영 정보**
-- URL: ~~https://user.blind-date.site~~
-- 테스트 계정: user@test.com / 1234
-
 **로컬 실행 방법**
 ```bash
 # Docker Compose로 전체 시스템 실행 (MySQL, MongoDB, Redis, Kafka, MinIO 포함)
