@@ -437,7 +437,8 @@ services:
       - "443:443"
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./cert:/etc/nginx/ssl:ro
+      - /etc/letsencrypt:/etc/letsencrypt:ro
+#      - ./cert:/etc/nginx/ssl:ro
     restart: unless-stopped
       # healthcheck:
       # test: ["CMD-SHELL", "wget -q --spider http://127.0.0.1/nginx-health || exit 1"]
@@ -517,7 +518,7 @@ services:
   #      - app-net
 
   user-server-1:
-    image: eclipse-temurin:17-jre-alpine
+    image: amazoncorretto:17-alpine
     container_name: user-server-1
     restart: unless-stopped
     logging: *default-logging
@@ -566,7 +567,7 @@ services:
       - app-net
 
   #  user-server-2:
-  #    image: eclipse-temurin:17-jre-alpine
+  #    image: amazoncorretto:17-alpine
   #    container_name: user-server-2
   #    restart: unless-stopped
   #    logging: *default-logging
@@ -607,7 +608,7 @@ services:
   #      - app-net
 
   chat-server-1:
-    image: eclipse-temurin:17-jre-alpine
+    image: amazoncorretto:17-alpine
     container_name: chat-server-1
     restart: unless-stopped
     logging: *default-logging
@@ -644,7 +645,7 @@ services:
       - app-net
 
 #  chat-server-2:
-#    image: eclipse-temurin:17-jre-alpine
+#    image: amazoncorretto:17-alpine
 #    container_name: chat-server-2
 #    restart: unless-stopped
 #    logging: *default-logging
