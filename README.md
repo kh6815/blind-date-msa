@@ -5,6 +5,8 @@
 내 주변의 가까운 사용자 목록을 확인하고 관심 있는 사람과 바로 매칭할 수 있습니다.
 매칭된 상대와 실시간 채팅을 통해 자연스럽게 대화를 시작할 수 있습니다.
 
+🔗 **접속정보**: [https://user.blind-date.site/login?email=test_user_1@example.com&password=password](https://user.blind-date.site/login?email=test_user_1@example.com&password=password)
+
 ## 주요 화면
 
 <div align="center">
@@ -555,10 +557,13 @@ COOKIE_DOMAIN=.blind-date.site
 - [ ] Health Check 확인
 - [ ] Grafana 대시보드 확인
 
-### AWS EC2 배포 참고
+### 오라클 클라우드 배포 참고
 
-- HTTPS 설정, 도메인 연결 완료
-- Docker Compose 기반 운영 환경 구성 (Redis, Kafka 단일 인스턴스)
+- HTTPS 설정(Let's Encrypt), 도메인 연결 완료 (`*.blind-date.site`)
+- `docker-compose-prod.yml` 기반 운영 환경 구성
+- 클라우드 인스턴스 리소스 제약으로 User/Chat 서버는 각 1대(`user-server-1`, `chat-server-1`)만 운영 (로컬 환경의 2대 이중화 구성과 차이)
+- 애플리케이션은 사전 빌드된 jar를 `amazoncorretto:17-alpine` 이미지로 실행 (소스 빌드 대신 jar 마운트 방식)
+- Kafka는 리소스 절약을 위해 로그 보관 기간(6시간) 및 힙 메모리(`-Xms256m -Xmx512m`) 제한 적용
 
 ---
 
@@ -604,7 +609,7 @@ COOKIE_DOMAIN=.blind-date.site
 - ✅ **통합 모니터링**: Prometheus + Grafana + Loki Observability 스택
 - ✅ **로그 수집 파이프라인**: Alloy를 통한 중앙화된 로그 관리
 - ✅ **HTTPS 적용**: mkcert + Nginx TLS 종료
-- ✅ **AWS EC2 배포**: 운영 환경 구축 완료
+- ✅ **오라클 클라우드 배포**: 운영 환경 구축 완료
 
 ### 기술적 개선 사항
 
