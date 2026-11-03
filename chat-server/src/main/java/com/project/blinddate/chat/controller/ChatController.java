@@ -123,6 +123,7 @@ public class ChatController {
         return ResponseEntity.ok(ResponseDto.ok(event));
     }
 
+    //TODO 필요한 API인가?
     @Operation(summary = "채팅방 읽지 않은 메시지 수 조회", description = "현재 사용자의 특정 채팅방 내 읽지 않은 메시지 수를 조회합니다.")
     @GetMapping("/rooms/{roomId}/unread-count")
     public ResponseEntity<ResponseDto<ChatRoomUnreadCountResponse>> getUnreadCount(

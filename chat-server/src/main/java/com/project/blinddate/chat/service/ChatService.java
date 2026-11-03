@@ -20,6 +20,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -209,7 +210,13 @@ public class ChatService {
 
     @Transactional(readOnly = true)
     public Page<ChatRoomResponse> getRoomsByUser(Long userId, Pageable pageable) {
-        Page<ChatRoom> roomPage = chatRoomRepository.findByParticipantUserIdsContains(userId, pageable);
+        // 최신 메시지 순 정렬 (lastMessageAt 내림차순)
+        Pageable sortedPageable = PageRequest.of(
+                pageable.getPageNumber(),
+                pageable.getPageSize(),
+                Sort.by(Sort.Direction.DESC, "lastMessageAt")
+        );
+        Page<ChatRoom> roomPage = chatRoomRepository.findByParticipantUserIdsContains(userId, sortedPageable);
 
         List<ChatRoomResponse> content = roomPage.getContent().stream().map(room -> {
                     List<Long> participantUserIds = room.getParticipantUserIds() != null ? room.getParticipantUserIds() : Collections.emptyList();

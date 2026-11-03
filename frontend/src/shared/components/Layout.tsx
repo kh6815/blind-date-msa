@@ -1,6 +1,6 @@
 import { createContext, useState, useEffect } from 'react';
 import { Link, useLocation, Outlet } from 'react-router-dom';
-import { useHasUnreadMessages } from '@/features/chat/hooks/useChatRooms';
+import { useHasUnreadMessages } from '@/features/chat/hooks/useChatRooms.ts';
 import { useHasUnreadLikes } from '@/features/home/hooks/useLike';
 
 interface LayoutContextValue {

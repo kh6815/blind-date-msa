@@ -1,11 +1,6 @@
 import { chatApiClient } from '@/shared/api/client';
 import type { ApiResponse, ChatRoom, ChatMessage, ChatRoomCreateRequest } from '@/types';
 
-interface UnreadCountResponse {
-  room_id: string;
-  unread_count: number;
-}
-
 interface HasUnreadResponse {
   has_unread: boolean;
 }
@@ -34,10 +29,6 @@ export const chatApi = {
   // 메시지 읽음 처리
   markMessagesAsRead: (roomId: string) =>
     chatApiClient.put<ApiResponse<any>>(`/rooms/${roomId}/messages/read`),
-
-  // 읽지 않은 메시지 수 조회
-  getUnreadCount: (roomId: string) =>
-    chatApiClient.get<ApiResponse<UnreadCountResponse>>(`/rooms/${roomId}/unread-count`),
 
   // 읽지 않은 메시지 존재 여부
   hasUnreadMessages: () =>

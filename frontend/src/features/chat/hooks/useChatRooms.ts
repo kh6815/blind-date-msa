@@ -44,18 +44,6 @@ export const useChatRoom = (roomId: string) => {
   });
 };
 
-// 읽지 않은 메시지 수 조회
-export const useUnreadCount = (roomId: string) => {
-  return useQuery({
-    queryKey: ['unreadCount', roomId],
-    queryFn: async () => {
-      const response = await chatApi.getUnreadCount(roomId);
-      return response.data.data.unread_count || 0;
-    },
-    enabled: !!roomId,
-  });
-};
-
 // 읽지 않은 메시지 존재 여부
 export const useHasUnreadMessages = () => {
   return useQuery({
@@ -86,18 +74,6 @@ export const useMarkMessagesAsRead = () => {
     onError: (error) => {
       console.error('Failed to mark messages as read:', error);
     },
-  });
-};
-
-// 채팅 메시지 조회
-export const useChatMessages = (roomId: string, page: number = 0, size: number = 50) => {
-  return useQuery({
-    queryKey: ['chatMessages', roomId, page, size],
-    queryFn: async () => {
-      const response = await chatApi.getMessages(roomId, page, size);
-      return response.data.data || [];
-    },
-    enabled: !!roomId,
   });
 };
 

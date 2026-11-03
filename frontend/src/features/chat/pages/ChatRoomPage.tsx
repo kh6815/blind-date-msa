@@ -1,42 +1,43 @@
 import { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { Client } from '@stomp/stompjs';
-import SockJS from 'sockjs-client';
 import { useAuthStore } from '@/store/useAuthStore';
-import { useInfiniteChatMessages, useMarkMessagesAsRead } from '@/features/chat/hooks/useChatRooms';
-import type { ChatMessage, ChatMessageSendRequest, ChatRoom } from '@/types/chat';
+import { useChatRoom, useMarkMessagesAsRead } from '@/features/chat/hooks/useChatRooms.ts';
+import { useChatRoomMessages } from '@/features/chat/hooks/useChatRoomMessages.ts';
+import type { ChatRoom } from '@/types/chat';
+import {formatDate, formatTime, getDateKey} from "@/features/chat/util/DataFormatter.ts";
 
 function ChatRoomPage() {
   const { roomId } = useParams<{ roomId: string }>();
   const navigate = useNavigate();
   const location = useLocation();
   const user = useAuthStore((state) => state.user);
-  const markMessagesAsReadMutation = useMarkMessagesAsRead();
 
-  const [realtimeMessages, setRealtimeMessages] = useState<ChatMessage[]>([]);
   const [messageInput, setMessageInput] = useState('');
-  const [isConnected, setIsConnected] = useState(false);
   const [isFirstLoad, setIsFirstLoad] = useState(true);
 
   const roomInfo = location.state?.room as ChatRoom | null;
-
-  const stompClient = useRef<Client | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const messagesAreaRef = useRef<HTMLDivElement>(null);
 
-  // 무한 스크롤 Hook으로 메시지 로드
+  // 채팅방 정보 조회
+  const { data: fetchedRoomInfo } = useChatRoom(roomId || '');
+
+  // 현재 채팅방 정보 (location.state 우선, 없으면 API로 조회한 데이터 사용)
+  const currentRoomInfo = roomInfo || fetchedRoomInfo;
+  const targetUserNickname = currentRoomInfo?.target_user_nickname || '상대방';
+  const targetUserImageUrl = currentRoomInfo?.target_user_image_url;
+  const isTargetUserOnline = currentRoomInfo?.is_target_user_online || false;
+
+  // 메시지 읽음 처리
+  const markAsReadMutation = useMarkMessagesAsRead();
+
+  // 메시지 통합 관리 (서버 메시지 + WebSocket 실시간 메시지 + 무한 스크롤)
   const {
-    data,
-    fetchNextPage,
-    hasNextPage,
-    isFetchingNextPage,
-  } = useInfiniteChatMessages(roomId || '', 50);
-
-  // 모든 페이지의 메시지를 하나의 배열로 변환
-  const messages = data?.pages.flatMap((page) => page) || [];
-
-  // 전체 메시지 = 서버에서 로드한 메시지 + 실시간 메시지
-  const allMessages = [...messages, ...realtimeMessages];
+    messages: allMessages,
+    isLoading,
+    isConnected,
+    sendMessage: sendChatMessage,
+    messagesAreaRef,
+  } = useChatRoomMessages(roomId || '', 50);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -44,168 +45,27 @@ function ChatRoomPage() {
 
   // 첫 로드 시 스크롤을 맨 아래로
   useEffect(() => {
-    if (isFirstLoad && messages.length > 0) {
+    if (isFirstLoad && allMessages.length > 0) {
       scrollToBottom();
       setIsFirstLoad(false);
     }
-  }, [messages.length, isFirstLoad]);
+  }, [allMessages.length, isFirstLoad]);
 
-  // 무한 스크롤 - 이전 메시지 로드
-  const loadMoreMessages = () => {
-    if (!isFetchingNextPage && hasNextPage) {
-      const previousScrollHeight = messagesAreaRef.current?.scrollHeight || 0;
-
-      fetchNextPage().then(() => {
-        // 스크롤 위치 유지
-        setTimeout(() => {
-          if (messagesAreaRef.current) {
-            const newScrollHeight = messagesAreaRef.current.scrollHeight;
-            messagesAreaRef.current.scrollTop = newScrollHeight - previousScrollHeight;
-          }
-        }, 0);
-      });
+  // 채팅방 진입 시 메시지 읽음 처리
+  useEffect(() => {
+    if (roomId) {
+      markAsReadMutation.mutate(roomId);
     }
-  };
+  }, [roomId, markAsReadMutation]);
 
-  // 스크롤 이벤트 핸들러
-  useEffect(() => {
-    const messagesArea = messagesAreaRef.current;
-    if (!messagesArea) return;
-
-    const handleScroll = () => {
-      if (messagesArea.scrollTop === 0 && !isFetchingNextPage && hasNextPage) {
-        loadMoreMessages();
-      }
-    };
-
-    messagesArea.addEventListener('scroll', handleScroll);
-    return () => messagesArea.removeEventListener('scroll', handleScroll);
-  }, [isFetchingNextPage, hasNextPage]);
-
-  // WebSocket 연결
-  useEffect(() => {
-    if (!roomId || !user) return;
-
-    const socket = new SockJS(`${window.location.protocol}//${window.location.host}/ws/chat`);
-    const client = new Client({
-      webSocketFactory: () => socket as any,
-      reconnectDelay: 5000,
-      heartbeatIncoming: 4000,
-      heartbeatOutgoing: 4000,
-      debug: (str) => {
-        console.log(str);
-      },
-      onConnect: () => {
-        console.log('WebSocket connected');
-        setIsConnected(true);
-
-        // 메시지 구독
-        client.subscribe(`/topic/chats/${roomId}`, (message) => {
-          const newMessage: ChatMessage = JSON.parse(message.body);
-          setRealtimeMessages((prev) => [...prev, newMessage]);
-
-          // 다른 사람이 보낸 메시지는 자동으로 읽음 처리
-          if (newMessage.sender_user_id !== user.id) {
-            markAllAsRead();
-          }
-        });
-
-        // 읽음 이벤트 구독
-        client.subscribe(`/topic/chats/${roomId}/read`, (message) => {
-          const readEvent = JSON.parse(message.body);
-          handleReadEvent(readEvent);
-        });
-
-        // 채팅방 진입 시 자동 읽음 처리
-        markAllAsRead();
-      },
-      onStompError: (frame) => {
-        console.error('Broker reported error: ' + frame.headers['message']);
-        console.error('Additional details: ' + frame.body);
-      },
-      onWebSocketClose: () => {
-        console.log('WebSocket disconnected');
-        setIsConnected(false);
-      },
-    });
-
-    client.activate();
-    stompClient.current = client;
-
-    return () => {
-      client.deactivate();
-    };
-  }, [roomId, user]);
-
+  // 메시지 전송 핸들러
   const handleSendMessage = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!messageInput.trim()) return;
 
-    if (!messageInput.trim() || !stompClient.current || !isConnected || !user || !roomId) {
-      return;
-    }
-
-    const message: ChatMessageSendRequest = {
-      sender_user_id: user.id,
-      content: messageInput.trim(),
-      type: 'TEXT',
-    };
-
-    stompClient.current.publish({
-      destination: `/pub/chats/${roomId}`,
-      body: JSON.stringify(message),
-    });
-
+    sendChatMessage(messageInput);
     setMessageInput('');
-  };
-
-  // 읽음 처리
-  const markAllAsRead = () => {
-    if (!roomId || !user) return;
-    markMessagesAsReadMutation.mutate(roomId);
-  };
-
-  // 읽음 이벤트 처리
-  const handleReadEvent = (readEvent: { user_id: number; read_at: string }) => {
-    if (!user || readEvent.user_id === user.id) return;
-
-    const readAtTimestamp = new Date(readEvent.read_at);
-
-    setRealtimeMessages((prevMessages) =>
-      prevMessages.map((msg) => {
-        if (msg.sender_user_id !== user.id) return msg;
-
-        const sentAtTimestamp = new Date(msg.sent_at);
-        if (sentAtTimestamp <= readAtTimestamp && msg.unread_count && msg.unread_count > 0) {
-          return {
-            ...msg,
-            unread_count: Math.max(0, msg.unread_count - 1),
-          };
-        }
-        return msg;
-      })
-    );
-  };
-
-  // 날짜 구분자를 위한 헬퍼 함수
-  const getDateKey = (dateString: string) => {
-    return new Date(dateString).toISOString().slice(0, 10);
-  };
-
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('ko-KR', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-    });
-  };
-
-  const formatTime = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleTimeString('ko-KR', {
-      hour: '2-digit',
-      minute: '2-digit',
-    });
+    scrollToBottom();
   };
 
   // 날짜별로 그룹화된 메시지 렌더링
@@ -264,10 +124,6 @@ function ChatRoomPage() {
     return null;
   }
 
-  const targetUserNickname = roomInfo?.target_user_nickname || '상대방';
-  const targetUserImageUrl = roomInfo?.target_user_image_url;
-  const isTargetUserOnline = roomInfo?.is_target_user_online || false;
-
   return (
     <div className="flex flex-col h-screen bg-[#f8f9fa]">
       {/* Header */}
@@ -298,7 +154,7 @@ function ChatRoomPage() {
 
       {/* Messages */}
       <div ref={messagesAreaRef} className="flex-1 overflow-y-auto p-4 bg-[#f8f9fa]">
-        {isFetchingNextPage && (
+        {isLoading && (
           <div className="text-center py-2">
             <i className="fas fa-spinner fa-spin text-accent-color"></i>
           </div>

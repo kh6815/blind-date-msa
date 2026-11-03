@@ -16,6 +16,10 @@ public interface ChatRoomRepository extends MongoRepository<ChatRoom, String> {
 
     List<ChatRoom> findByParticipantUserIdsContains(Long userId);
 
+    /**
+     * 사용자가 참여한 채팅방 목록 조회 (최신 메시지 순 정렬)
+     * Sort는 Pageable에 포함되어 전달됨
+     */
     Page<ChatRoom> findByParticipantUserIdsContains(Long userId, Pageable pageable);
 }
 

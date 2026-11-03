@@ -1,8 +1,7 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { chatApi } from '@/features/chat/api/chatApi';
 import { useAuthStore } from '@/store/useAuthStore';
-import { useCreateChatRoom } from '@/features/chat/hooks/useChatRooms';
+import { useCreateChatRoom, useChatRoom } from '@/features/chat/hooks/useChatRooms.ts';
 import type { ChatRoomCreateRequest } from '@/types/chat';
 
 function ChatRoomCreatePage() {
@@ -11,6 +10,10 @@ function ChatRoomCreatePage() {
   const user = useAuthStore((state) => state.user);
   const targetUserId = searchParams.get('targetUserId');
   const createRoomMutation = useCreateChatRoom();
+  const [createdRoomId, setCreatedRoomId] = useState<string | null>(null);
+
+  // 생성된 채팅방 정보 조회
+  const { data: createdRoomInfo } = useChatRoom(createdRoomId || '');
 
   useEffect(() => {
     if (!user || !targetUserId) {
@@ -19,20 +22,12 @@ function ChatRoomCreatePage() {
     }
 
     const request: ChatRoomCreateRequest = {
-      participant_user_ids: [Number(targetUserId)], // 서버에서 현재 사용자 ID를 자동으로 추가
+      participant_user_ids: [Number(targetUserId)],
     };
 
-    // Use mutation with onSuccess/onError callbacks
     createRoomMutation.mutate(request, {
-      onSuccess: async (createdRoom) => {
-        const roomId = createdRoom.id;
-
-        // Thymeleaf처럼 생성 후 다시 GET으로 room 정보를 가져옴 (targetUser 정보가 올바르게 채워짐)
-        const getRoomResponse = await chatApi.getRoom(roomId.toString());
-        const room = getRoomResponse.data.data;
-
-        // 채팅방 페이지로 이동 (올바른 room 정보 전달)
-        navigate(`/chats/room/${roomId}`, { state: { room } });
+      onSuccess: (createdRoom) => {
+        setCreatedRoomId(createdRoom.id.toString());
       },
       onError: () => {
         navigate('/');
@@ -40,6 +35,13 @@ function ChatRoomCreatePage() {
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, targetUserId, navigate]);
+
+  // 채팅방 정보를 가져온 후 페이지 이동
+  useEffect(() => {
+    if (createdRoomInfo && createdRoomId) {
+      navigate(`/chats/room/${createdRoomId}`, { state: { room: createdRoomInfo } });
+    }
+  }, [createdRoomInfo, createdRoomId, navigate]);
 
   return (
     <div className="flex justify-center items-center h-full">
