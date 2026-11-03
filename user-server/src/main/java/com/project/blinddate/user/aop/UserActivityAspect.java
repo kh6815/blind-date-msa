@@ -17,22 +17,28 @@ import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 import java.time.Duration;
 
+/**
+ * 주석처리 이유:
+ * - 인증 로직을 Spring Security (JwtAuthenticationFilter)로 이전
+ * - SecurityContextHolder를 통해 인증 정보 관리
+ * - Redis 활동 갱신은 JwtAuthenticationFilter에서 처리
+ */
 @Slf4j
-@Aspect
-@Component
+// @Aspect
+// @Component
 @RequiredArgsConstructor
 public class UserActivityAspect {
 
     private final StringRedisTemplate redisTemplate;
     private final JwtTokenProvider jwtTokenProvider;
-    
+
     @Value("${user.presence.key-prefix}")
     private String USER_PRESENCE_KEY_PREFIX;
 
     @Value("${user.presence.ttl-minutes}")
     private long USER_PRESENCE_TTL_MINUTES;
 
-    @Around("@within(org.springframework.stereotype.Controller) || @within(org.springframework.web.bind.annotation.RestController)")
+    // @Around("@within(org.springframework.stereotype.Controller) || @within(org.springframework.web.bind.annotation.RestController)")
     public Object updateUserActivityAndSetUserId(ProceedingJoinPoint joinPoint) throws Throwable{
         Object[] args = joinPoint.getArgs();
 

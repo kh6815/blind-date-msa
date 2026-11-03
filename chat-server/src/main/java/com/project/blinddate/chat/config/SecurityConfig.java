@@ -1,6 +1,8 @@
 package com.project.blinddate.chat.config;
 
 import com.project.blinddate.chat.filter.RequestLoggingFilter;
+import com.project.blinddate.chat.security.JwtAuthenticationFilter;
+import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authorization.AuthorizationDecision;
@@ -20,7 +22,10 @@ import java.util.List;
 
 @Configuration
 @EnableWebSecurity
+@RequiredArgsConstructor
 public class SecurityConfig {
+
+    private final JwtAuthenticationFilter jwtAuthenticationFilter;
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -67,9 +72,11 @@ public class SecurityConfig {
                         boolean allowed = allowedIps.stream().anyMatch(m -> m.matches(remoteAddr));
                         return new AuthorizationDecision(allowed);
                     })
-                    .anyRequest().permitAll()                                // 다른 요청은 모두 허용
+                    // 그 외 모든 요청은 인증 필요
+                    .anyRequest().authenticated()
             );
 
+        http.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
         http.addFilterBefore(new RequestLoggingFilter(), UsernamePasswordAuthenticationFilter.class);
 
         return http.build();

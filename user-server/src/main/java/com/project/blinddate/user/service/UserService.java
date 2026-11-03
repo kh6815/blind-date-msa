@@ -157,6 +157,33 @@ public class UserService {
     }
 
     @Transactional(readOnly = true)
+    public List<UserResponse> listUsers(Long currentUserId, int page, int size, Integer minAge, Integer maxAge, String gender, String mbti, String location) {
+        UserSearchCondition condition = UserSearchCondition.builder()
+                .minAge(minAge)
+                .maxAge(maxAge)
+                .gender(gender)
+                .mbti(mbti)
+                .location(location)
+                .build();
+
+        Pageable pageable = org.springframework.data.domain.PageRequest.of(page, size);
+
+        // 현재 사용자 정보 조회
+        User currentUser = null;
+        if (currentUserId != null) {
+            currentUser = userRepository.findById(currentUserId).orElse(null);
+        }
+
+        UserResponse currentUserResponse = currentUser != null ? userMapper.toResponse(currentUser) : null;
+        Page<UserResponse> result = searchUsers(condition, pageable, currentUserResponse);
+
+        // 자기 자신 제외
+        return result.getContent().stream()
+                .filter(user -> currentUserId == null || !user.getId().equals(currentUserId))
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
     public List<UserResponse> recommendUsers(String gender, String mbti, String interestsCsv, int limit) {
         List<String> interests = parseInterests(interestsCsv);
         return userRepository.searchRecommendUsers(gender, mbti, interests, limit)

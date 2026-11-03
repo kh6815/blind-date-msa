@@ -393,10 +393,26 @@ services:
     networks:
       - app-net
 
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: frontend
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://127.0.0.1/health || exit 1"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+    networks:
+      - app-net
+
   nginx:
     image: nginx:1.25-alpine
     container_name: nginx
     depends_on:
+      - frontend
       - user-server-1
       - user-server-2
       - chat-server-1
@@ -420,61 +436,62 @@ services:
           - user.blind-date.com
           - chat.blind-date.com
           - minio.blind-date.com
+          - app.blind-date.com
 
-  # Prometheus (메트릭 수집기)
-  prometheus:
-    image: prom/prometheus:latest
-    container_name: prometheus
-    volumes:
-      - ./monitoring/prometheus/config/prometheus.yml:/etc/prometheus/prometheus.yml:ro
-      - ./monitoring/prometheus/data:/prometheus
-    restart: unless-stopped
-    networks:
-      - app-net
-
-  # alloy 로그 수집기
-  alloy:
-    image: grafana/alloy:latest
-    container_name: alloy
-    volumes:
-      - ./monitoring/alloy/config/config.alloy:/etc/alloy/config.alloy
-      - ./logs:/var/log/app
-      - ./monitoring/alloy/data:/var/lib/alloy/data
-    command: run /etc/alloy/config.alloy
-    depends_on:
-      - loki
-    networks:
-      - app-net
-    restart: unless-stopped
-
-  loki:
-    image: grafana/loki:3.5.1
-    container_name: loki
-    command: -config.file=/etc/loki/loki.yml
-    volumes:
-      - ./monitoring/loki/config:/etc/loki
-      - ./monitoring/loki/data:/loki
-    networks:
-      - app-net
-    restart: unless-stopped
-
-  # Grafana (모니터링 대시보드)
-  grafana:
-    image: grafana/grafana:latest
-    container_name: grafana
-    volumes:
-      - ./monitoring/grafana/data:/var/lib/grafana
-    depends_on:
-      - prometheus
-      - loki
-    ports:
-      - "${GRAFANA_PORT_BIND}:${GRAFANA_PORT}"
-#    environment:
-#      - GF_SERVER_ROOT_URL=http://grafana.blind-date.com
-#      - GF_SERVER_SERVE_FROM_SUB_PATH=false
-    restart: unless-stopped
-    networks:
-      - app-net
+#  # Prometheus (메트릭 수집기)
+#  prometheus:
+#    image: prom/prometheus:latest
+#    container_name: prometheus
+#    volumes:
+#      - ./monitoring/prometheus/config/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+#      - ./monitoring/prometheus/data:/prometheus
+#    restart: unless-stopped
+#    networks:
+#      - app-net
+#
+#  # alloy 로그 수집기
+#  alloy:
+#    image: grafana/alloy:latest
+#    container_name: alloy
+#    volumes:
+#      - ./monitoring/alloy/config/config.alloy:/etc/alloy/config.alloy
+#      - ./logs:/var/log/app
+#      - ./monitoring/alloy/data:/var/lib/alloy/data
+#    command: run /etc/alloy/config.alloy
+#    depends_on:
+#      - loki
+#    networks:
+#      - app-net
+#    restart: unless-stopped
+#
+#  loki:
+#    image: grafana/loki:3.5.1
+#    container_name: loki
+#    command: -config.file=/etc/loki/loki.yml
+#    volumes:
+#      - ./monitoring/loki/config:/etc/loki
+#      - ./monitoring/loki/data:/loki
+#    networks:
+#      - app-net
+#    restart: unless-stopped
+#
+#  # Grafana (모니터링 대시보드)
+#  grafana:
+#    image: grafana/grafana:latest
+#    container_name: grafana
+#    volumes:
+#      - ./monitoring/grafana/data:/var/lib/grafana
+#    depends_on:
+#      - prometheus
+#      - loki
+#    ports:
+#      - "${GRAFANA_PORT_BIND}:${GRAFANA_PORT}"
+##    environment:
+##      - GF_SERVER_ROOT_URL=http://grafana.blind-date.com
+##      - GF_SERVER_SERVE_FROM_SUB_PATH=false
+#    restart: unless-stopped
+#    networks:
+#      - app-net
 
   user-server-1:
     build:

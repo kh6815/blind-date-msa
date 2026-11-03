@@ -1,22 +1,28 @@
 package com.project.blinddate.user.controller;
 
+import com.project.blinddate.common.ApiPathConst;
 import com.project.blinddate.common.dto.ResponseDto;
+import com.project.blinddate.user.dto.LikeNotificationResponse;
 import com.project.blinddate.user.dto.UserIdRequest;
 import com.project.blinddate.user.dto.UserLikeRequest;
 import com.project.blinddate.user.dto.UserLikeResponse;
 import com.project.blinddate.user.service.UserLikeService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.Map;
 
 @Tag(name = "Like API", description = "좋아요 도메인 API")
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/v1/likes")
+@RequestMapping(ApiPathConst.USER_API_PREFIX + "/likes")
 public class UserLikeController {
 
     private final UserLikeService userLikeService;
@@ -67,5 +73,19 @@ public class UserLikeController {
     public ResponseEntity<ResponseDto<Void>> markAsRead(UserIdRequest userIdRequest) {
         userLikeService.markLikesAsRead(userIdRequest.getId());
         return ResponseEntity.ok(ResponseDto.ok(null));
+    }
+
+    @Operation(summary = "나를 좋아한 사용자 목록 조회")
+    @GetMapping("/list")
+    public ResponseEntity<ResponseDto<List<LikeNotificationResponse>>> getLikers(
+            UserIdRequest userIdRequest,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size
+    ) {
+        Page<LikeNotificationResponse> likers = userLikeService.getLikers(
+                userIdRequest.getId(),
+                PageRequest.of(page, size)
+        );
+        return ResponseEntity.ok(ResponseDto.ok(likers.getContent()));
     }
 }

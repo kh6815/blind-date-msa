@@ -24,9 +24,14 @@ import org.springframework.web.context.request.ServletRequestAttributes;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 
+/**
+ * 주석처리 이유:
+ * - 인증 로직을 Spring Security (JwtAuthenticationFilter)로 이전
+ * - SecurityContextHolder를 통해 인증 정보 관리
+ */
 @Slf4j
-@Aspect
-@Component
+// @Aspect
+// @Component
 @RequiredArgsConstructor
 public class ChatUserActivityAspect {
 
@@ -41,7 +46,7 @@ public class ChatUserActivityAspect {
     private final StringRedisTemplate redisTemplate;
     private final UserFeignClient userFeignClient;
 
-    @Around("@within(org.springframework.stereotype.Controller)")
+    // @Around("@within(org.springframework.stereotype.Controller)")
     public Object aroundViewController(ProceedingJoinPoint joinPoint) throws Throwable {
         Object[] args = joinPoint.getArgs();
 
@@ -76,7 +81,7 @@ public class ChatUserActivityAspect {
         return joinPoint.proceed(args);
     }
 
-    @Around("@within(org.springframework.web.bind.annotation.RestController)")
+    // @Around("@within(org.springframework.web.bind.annotation.RestController)")
     public Object aroundRestController(ProceedingJoinPoint joinPoint) throws Throwable {
         Object[] args = joinPoint.getArgs();
         ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();

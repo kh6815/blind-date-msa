@@ -15,7 +15,7 @@ import java.util.List;
 @Schema(description = "채팅방 생성 요청")
 public class ChatRoomCreateRequest {
 
-    @Schema(description = "참여 유저 ID 목록", example = "[1, 2]")
+    @Schema(description = "자신을 제외한 다른 참여자 ID 목록 (서버에서 현재 사용자 ID를 자동으로 추가)", example = "[2]")
     @NotEmpty
     private final List<Long> participantUserIds;
 }
