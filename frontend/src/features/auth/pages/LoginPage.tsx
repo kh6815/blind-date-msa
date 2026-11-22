@@ -1,16 +1,44 @@
-import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useLogin } from '@/features/auth/hooks/useAuth';
 import { handleError } from '@/lib/queryClient';
 
 function LoginPage() {
+  const [searchParams] = useSearchParams();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const navigate = useNavigate();
   const { setUser } = useAuthStore();
 
   const loginMutation = useLogin();
+
+  // 쿼리 파라미터에서 email과 password를 읽어 자동 로그인
+  useEffect(() => {
+    const emailParam = searchParams.get('email');
+    const passwordParam = searchParams.get('password');
+
+    if (emailParam && passwordParam) {
+      // 쿼리 파라미터로 입력 필드 채우기
+      setEmail(emailParam);
+      setPassword(passwordParam);
+
+      // 자동 로그인 실행
+      loginMutation.mutate(
+        { email: emailParam, password: passwordParam },
+        {
+          onSuccess: (data) => {
+            console.log('Auto-login success:', data);
+            setUser(data);
+            navigate('/');
+          },
+          onError: (error) => {
+            console.error('Auto-login failed:', error);
+          },
+        }
+      );
+    }
+  }, [searchParams, loginMutation, setUser, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

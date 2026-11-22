@@ -5,7 +5,7 @@
 내 주변의 가까운 사용자 목록을 확인하고 관심 있는 사람과 바로 매칭할 수 있습니다.
 매칭된 상대와 실시간 채팅을 통해 자연스럽게 대화를 시작할 수 있습니다.
 
-🔗 **접속정보**: [https://user.blind-date.site/login?email=test_user_1@example.com&password=password](https://user.blind-date.site/login?email=test_user_1@example.com&password=password)
+🔗 **접속정보**: [https://app.blind-date.site/login?email=test_user_1@example.com&password=password](https://app.blind-date.site/login?email=test_user_1@example.com&password=password)
 
 ## 주요 화면
 
