@@ -13,38 +13,10 @@ function LoginPage() {
 
   const loginMutation = useLogin();
 
-  // 쿼리 파라미터에서 email과 password를 읽어 자동 로그인
-  useEffect(() => {
-    const emailParam = searchParams.get('email');
-    const passwordParam = searchParams.get('password');
-
-    if (emailParam && passwordParam) {
-      // 쿼리 파라미터로 입력 필드 채우기
-      setEmail(emailParam);
-      setPassword(passwordParam);
-
-      // 자동 로그인 실행
-      loginMutation.mutate(
-        { email: emailParam, password: passwordParam },
-        {
-          onSuccess: (data) => {
-            console.log('Auto-login success:', data);
-            setUser(data);
-            navigate('/');
-          },
-          onError: (error) => {
-            console.error('Auto-login failed:', error);
-          },
-        }
-      );
-    }
-  }, [searchParams, loginMutation, setUser, navigate]);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
+  // 공통 로그인 처리 함수
+  const performLogin = (loginEmail: string, loginPassword: string) => {
     loginMutation.mutate(
-      { email, password },
+      { email: loginEmail, password: loginPassword },
       {
         onSuccess: (data) => {
           console.log('Login success:', data);
@@ -52,13 +24,31 @@ function LoginPage() {
           navigate('/');
         },
         onError: (error) => {
-          // 공통 에러 처리는 queryClient에서 하지만,
-          // 추가 UI 처리가 필요한 경우 여기서 처리
           console.error('Login failed:', error);
         },
       }
     );
   };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    performLogin(email, password);
+  };
+
+  // 쿼리 파라미터에서 email과 password를 읽어 자동 로그인
+  useEffect(() => {
+    const emailParam = searchParams.get('email');
+    const passwordParam = searchParams.get('password');
+
+    if (emailParam && passwordParam) {
+        // 쿼리 파라미터로 입력 필드 채우기
+        setEmail(emailParam);
+        setPassword(passwordParam);
+
+        // 자동 로그인 실행
+        performLogin(emailParam, passwordParam);
+    }
+  }, [searchParams]);
 
   return (
     <div className="flex flex-col justify-center h-full p-5">
