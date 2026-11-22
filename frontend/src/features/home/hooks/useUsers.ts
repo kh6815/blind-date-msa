@@ -8,12 +8,20 @@ export const useUsers = (filters: FilterParams) => {
     queryKey: ['users', filters],
     queryFn: async ({ pageParam = 0 }) => {
       const response = await userApi.getUsers(pageParam, 20, filters);
+      const data = response.data.data || [];
       return {
-        data: response.data.data || [],
-        nextPage: response.data.data.length === 20 ? pageParam + 1 : undefined,
+        data,
+        currentPage: pageParam,
       };
     },
-    getNextPageParam: (lastPage) => lastPage.nextPage,
+    getNextPageParam: (lastPage) => {
+      // 데이터가 비어있으면 더 이상 페이지가 없음
+      if (lastPage.data.length === 0) {
+        return undefined;
+      }
+      // 그 외의 경우 다음 페이지 시도
+      return lastPage.currentPage + 1;
+    },
     initialPageParam: 0,
   });
 };
