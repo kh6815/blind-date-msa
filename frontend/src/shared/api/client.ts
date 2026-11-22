@@ -30,6 +30,10 @@ userApiClient.interceptors.request.use(
 
 chatApiClient.interceptors.request.use(
   (config) => {
+    // FormData인 경우 Content-Type을 자동으로 설정하도록 헤더 삭제
+    if (config.data instanceof FormData) {
+      delete config.headers['Content-Type'];
+    }
     return config;
   },
   (error) => {

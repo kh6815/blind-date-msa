@@ -1,5 +1,6 @@
 package com.project.blinddate.user.dto;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -27,5 +28,6 @@ public class LikeNotificationResponse {
     private LocalDateTime likedAt;
 
     @Schema(description = "읽음 여부")
+    @JsonProperty("is_read")
     private boolean isRead;
 }

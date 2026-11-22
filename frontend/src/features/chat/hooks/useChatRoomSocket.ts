@@ -10,10 +10,12 @@ import type { ChatMessage } from '@/types/chat';
  * - WebSocket 연결 및 메시지/읽음 이벤트 구독
  * - 실시간 메시지를 realtimeMessages state로 관리
  * - 서버에서 로드한 메시지는 setLocalMessages로 직접 업데이트
+ * - 재연결 시 누락 메시지 동기화 콜백 지원
  */
 export function useChatRoomSocket(
   roomId: string,
-  setLocalMessages: React.Dispatch<React.SetStateAction<ChatMessage[]>>
+  setLocalMessages: React.Dispatch<React.SetStateAction<ChatMessage[]>>,
+  // onReconnect?: () => void
 ) {
   const user = useAuthStore((state) => state.user);
   const markMessagesAsReadMutation = useMarkMessagesAsRead();
@@ -21,6 +23,7 @@ export function useChatRoomSocket(
   const [realtimeMessages, setRealtimeMessages] = useState<ChatMessage[]>([]);
   const [isConnected, setIsConnected] = useState(false);
   const stompClient = useRef<Client | null>(null);
+  // const isFirstConnection = useRef(true); // 최초 연결 여부 추적
 
   // 읽음 이벤트 처리 (Timestamp 기반)
   const handleReadEvent = useCallback((readEvent: { user_id: number; read_at: string }) => {
@@ -76,7 +79,7 @@ export function useChatRoomSocket(
 
   // 메시지 전송
   const sendMessage = useCallback(
-    (content: string) => {
+    (content: string, type: 'TEXT' | 'IMAGE' = 'TEXT') => {
       if (!content.trim() || !stompClient.current || !isConnected || !user) {
         return;
       }
@@ -86,7 +89,7 @@ export function useChatRoomSocket(
         body: JSON.stringify({
           sender_user_id: user.id,
           content: content.trim(),
-          type: 'TEXT',
+          type,
         }),
       });
     },
@@ -110,6 +113,8 @@ export function useChatRoomSocket(
       heartbeatOutgoing: 4000,
       debug: () => {},
       onConnect: () => {
+        // const isReconnect = !isFirstConnection.current;
+        // console.log(`[ChatRoom] WebSocket ${isReconnect ? 'reconnected' : 'connected'}`);
         console.log('[ChatRoom] WebSocket connected');
         setIsConnected(true);
 
@@ -132,8 +137,17 @@ export function useChatRoomSocket(
           handleReadEvent(readEvent);
         });
 
+        // // 재연결 시 누락된 메시지 동기화
+        // if (isReconnect) {
+        //   console.log('[ChatRoom] Reconnected - syncing messages');
+        //   onReconnect?.();
+        // }
+
         // 채팅방 진입 시 자동 읽음 처리
         markAllAsReadRef.current?.();
+
+        // 최초 연결 플래그 업데이트
+        // isFirstConnection.current = false;
       },
       onStompError: (frame) => {
         console.error('[ChatRoom] STOMP error:', frame.headers['message']);
@@ -151,8 +165,11 @@ export function useChatRoomSocket(
     return () => {
       console.log('[ChatRoom] Cleaning up - deactivating WebSocket');
       client.deactivate();
+      // 클린업 시 최초 연결 플래그 리셋
+      // isFirstConnection.current = true;
     };
   }, [roomId, user, handleReadEvent]);
+  // }, [roomId, user, handleReadEvent, onReconnect]);
 
   // 외부에서 호출할 수 있는 wrapper 함수
   const markAllAsRead = useCallback(() => {

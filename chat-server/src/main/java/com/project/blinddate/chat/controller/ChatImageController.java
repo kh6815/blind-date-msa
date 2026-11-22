@@ -1,6 +1,7 @@
 package com.project.blinddate.chat.controller;
 
 import com.project.blinddate.chat.service.ChatImageService;
+import com.project.blinddate.common.ApiPathConst;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -12,7 +13,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/chats/image")
+@RequestMapping(ApiPathConst.CHAT_API_PREFIX + "/image")
 @RequiredArgsConstructor
 public class ChatImageController {
     private final ChatImageService chatImageService;

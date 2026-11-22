@@ -20,7 +20,6 @@ function LikeListPage() {
   // 읽음 처리
   useEffect(() => {
     markAsReadMutation.mutate();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Infinite scroll observer

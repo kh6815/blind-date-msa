@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useUser, useRecordView } from '@/features/home/hooks/useUsers';
 import { useCheckLike, useAddLike, useRemoveLike } from '@/features/home/hooks/useLike';
+import ImageModal from '@/shared/components/ImageModal';
 
 function UserDetailPage() {
   const { userId } = useParams<{ userId: string }>();
@@ -189,24 +190,12 @@ function UserDetailPage() {
       </div>
 
       {/* Image Modal */}
-      {showImageModal && (
-        <div
-          className="fixed z-[1000] pt-0 left-0 top-0 w-full h-full overflow-hidden bg-[rgba(0,0,0,0.95)] flex justify-center items-center"
-          onClick={() => setShowImageModal(false)}
-        >
-          <span
-            className="absolute top-4 right-9 text-gray-100 text-5xl font-bold cursor-pointer"
-            onClick={() => setShowImageModal(false)}
-          >
-            &times;
-          </span>
-          <img
-            src={allImages[currentImageIndex]}
-            alt={user.nickname}
-            className="mx-auto block max-w-[90%] max-h-[90%] rounded"
-          />
-        </div>
-      )}
+      <ImageModal
+        isOpen={showImageModal}
+        imageSrc={allImages[currentImageIndex]}
+        alt={user.nickname}
+        onClose={() => setShowImageModal(false)}
+      />
     </div>
   );
 }

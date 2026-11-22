@@ -33,4 +33,13 @@ export const chatApi = {
   // 읽지 않은 메시지 존재 여부
   hasUnreadMessages: () =>
     chatApiClient.get<ApiResponse<HasUnreadResponse>>('/has-unread'),
+
+  // 이미지 업로드
+  uploadImage: (file: File) => {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    // axios가 자동으로 Content-Type을 multipart/form-data로 설정하고 boundary를 추가함
+    return chatApiClient.post<{ url: string }>('/image/upload', formData);
+  },
 };

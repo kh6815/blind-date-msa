@@ -96,3 +96,16 @@ export const useInfiniteChatMessages = (roomId: string, size: number = 50) => {
     initialPageParam: 0,
   });
 };
+
+// 이미지 업로드
+export const useUploadImage = () => {
+  return useMutation({
+    mutationFn: async (file: File) => {
+      const response = await chatApi.uploadImage(file);
+      return response.data.url;
+    },
+    onError: (error) => {
+      console.error('Failed to upload image:', error);
+    },
+  });
+};
