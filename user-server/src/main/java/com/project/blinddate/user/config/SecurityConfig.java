@@ -75,19 +75,22 @@ public class SecurityConfig {
                     .requestMatchers(new AntPathRequestMatcher("/api/v1/users", "POST")).permitAll()
                     .requestMatchers(new AntPathRequestMatcher("/api/v1/users/auth/login", "POST")).permitAll()
                     .requestMatchers(new AntPathRequestMatcher("/api/v1/users/auth/logout", "POST")).permitAll()
-                    // 내부 네트워크(Docker)에서 유저 정보 조회는 인증 불필요 (chat-server Feign 호출용)
+                    // 유저 정보 조회는 인증된 사용자 또는 내부 네트워크에서 허용
                     .requestMatchers(new AntPathRequestMatcher("/api/v1/users/{id:\\d+}", "GET"))
                     .access((authentication, context) -> {
                         String remoteAddr = context.getRequest().getRemoteAddr();
-                        // 내부 네트워크 대역만 허용
+                        // 내부 네트워크 대역 체크 (chat-server Feign 호출용)
                         List<IpAddressMatcher> internalIps = List.of(
                                 new IpAddressMatcher("127.0.0.1"),
                                 new IpAddressMatcher("10.0.0.0/8"),
                                 new IpAddressMatcher("172.16.0.0/12"),
                                 new IpAddressMatcher("192.168.0.0/16")
                         );
-                        boolean allowed = internalIps.stream().anyMatch(m -> m.matches(remoteAddr));
-                        return new AuthorizationDecision(allowed);
+                        boolean isInternalNetwork = internalIps.stream().anyMatch(m -> m.matches(remoteAddr));
+
+                        // 내부 네트워크이거나 인증된 사용자면 허용
+                        boolean isAuthenticated = authentication.get() != null && authentication.get().isAuthenticated();
+                        return new AuthorizationDecision(isInternalNetwork || isAuthenticated);
                     })
                     // 그 외 모든 요청은 인증 필요
                     .anyRequest().authenticated()

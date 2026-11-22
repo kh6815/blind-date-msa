@@ -36,13 +36,17 @@ curl -s https://raw.githubusercontent.com/certbot/certbot/master/certbot/certbot
 echo
 
 echo "### 임시 인증서 생성 중 (nginx 시작을 위해)..."
-path="/etc/letsencrypt/live/${domains[0]}"
-docker compose -f "$compose_file" run --rm --entrypoint "\
-  sh -c 'mkdir -p $path && \
-  openssl req -x509 -nodes -newkey rsa:$rsa_key_size -days 1 \
-    -keyout $path/privkey.pem \
-    -out $path/fullchain.pem \
-    -subj /CN=localhost'" certbot
+# 모든 도메인에 대해 임시 인증서 생성
+for domain in "${domains[@]}"; do
+  echo ">>> 임시 인증서 생성: $domain"
+  path="/etc/letsencrypt/live/$domain"
+  docker compose -f "$compose_file" run --rm --entrypoint "\
+    sh -c 'mkdir -p $path && \
+    openssl req -x509 -nodes -newkey rsa:$rsa_key_size -days 1 \
+      -keyout $path/privkey.pem \
+      -out $path/fullchain.pem \
+      -subj /CN=localhost'" certbot
+done
 echo
 
 echo "### nginx 시작 중..."
@@ -50,10 +54,14 @@ docker compose -f "$compose_file" up --force-recreate -d nginx
 echo
 
 echo "### 임시 인증서 삭제 중..."
-docker compose -f "$compose_file" run --rm --entrypoint "\
-  rm -rf /etc/letsencrypt/live/${domains[0]} && \
-  rm -rf /etc/letsencrypt/archive/${domains[0]} && \
-  rm -rf /etc/letsencrypt/renewal/${domains[0]}.conf" certbot
+# 모든 도메인의 임시 인증서 삭제
+for domain in "${domains[@]}"; do
+  echo ">>> 임시 인증서 삭제: $domain"
+  docker compose -f "$compose_file" run --rm --entrypoint "\
+    rm -rf /etc/letsencrypt/live/$domain && \
+    rm -rf /etc/letsencrypt/archive/$domain && \
+    rm -rf /etc/letsencrypt/renewal/$domain.conf" certbot
+done
 echo
 
 echo "### Let's Encrypt 인증서 발급 요청 중..."
