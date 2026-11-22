@@ -38,6 +38,6 @@ public class ChatKafkaConsumer {
     @KafkaListener(topics = "chat-message-read", containerFactory = "chatMessageReadKafkaListenerContainerFactory")
     public void consumeReadEvent(ChatMessageReadEvent event) {
         log.info("Consumed read event from Kafka: {}", event);
-        chatService.processReadEvent(event);
+        chatService.markMessagesAsReadByTimestamp(event.getRoomId(), event.getUserId(), event.getReadAt());
     }
 }

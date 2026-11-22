@@ -2,7 +2,6 @@ import { useEffect, useState, useRef, useCallback } from 'react';
 import { Client } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
 import { useAuthStore } from '@/store/useAuthStore';
-import { useMarkMessagesAsRead } from './useChatRooms.ts';
 import type { ChatMessage } from '@/types/chat';
 
 /**
@@ -15,15 +14,14 @@ import type { ChatMessage } from '@/types/chat';
 export function useChatRoomSocket(
   roomId: string,
   setLocalMessages: React.Dispatch<React.SetStateAction<ChatMessage[]>>,
-  // onReconnect?: () => void
+  onReconnect?: () => void
 ) {
   const user = useAuthStore((state) => state.user);
-  const markMessagesAsReadMutation = useMarkMessagesAsRead();
 
   const [realtimeMessages, setRealtimeMessages] = useState<ChatMessage[]>([]);
   const [isConnected, setIsConnected] = useState(false);
   const stompClient = useRef<Client | null>(null);
-  // const isFirstConnection = useRef(true); // 최초 연결 여부 추적
+  const isFirstConnect = useRef(true); // 최초 연결 여부 추적
 
   // 읽음 이벤트 처리 (Timestamp 기반)
   const handleReadEvent = useCallback((readEvent: { user_id: number; read_at: string }) => {
@@ -69,13 +67,15 @@ export function useChatRoomSocket(
     console.log('[ChatRoom] Updated message(s) unread count');
   }, [user, setLocalMessages]);
 
-  // 읽음 처리
+  /**
+   * 메시지 읽음 처리
+   *
+   * ref 패턴을 사용하는 이유:
+   * - WebSocket onConnect에서 함수를 정의하여 최신 stompClient, user, roomId 참조
+   * - ref에 할당하여 Visibility API useEffect에서 호출 가능
+   * - ref는 렌더링 간에 안정적으로 유지되므로 의존성 배열에 넣지 않아도 동작
+   */
   const markAllAsReadRef = useRef<(() => void) | null>(null);
-  markAllAsReadRef.current = () => {
-    if (!roomId || !user) return;
-    console.log('[ChatRoom] Marking messages as read for room:', roomId);
-    markMessagesAsReadMutation.mutate(roomId);
-  };
 
   // 메시지 전송
   const sendMessage = useCallback(
@@ -113,10 +113,46 @@ export function useChatRoomSocket(
       heartbeatOutgoing: 4000,
       debug: () => {},
       onConnect: () => {
-        // const isReconnect = !isFirstConnection.current;
-        // console.log(`[ChatRoom] WebSocket ${isReconnect ? 'reconnected' : 'connected'}`);
-        console.log('[ChatRoom] WebSocket connected');
+        const isReconnect = !isFirstConnect.current;
+        console.log(`[ChatRoom] WebSocket ${isReconnect ? 'reconnected' : 'connected'}`);
         setIsConnected(true);
+
+        // 재연결인 경우 누락된 메시지 동기화
+        if (isReconnect && onReconnect) {
+          console.log('[ChatRoom] Triggering reconnect sync');
+          onReconnect();
+        }
+
+        isFirstConnect.current = false;
+
+        /**
+         * 읽음 처리 함수를 onConnect 내부에서 정의하는 이유:
+         * - WebSocket 연결 시점의 최신 user, stompClient 참조 사용
+         * - 클로저로 roomId도 접근 가능
+         * - ref에 할당하여 외부(Visibility API)에서도 호출 가능
+         */
+        markAllAsReadRef.current = () => {
+          // 연결 상태 체크
+          if (!stompClient.current || !user) {
+            console.log('[ChatRoom] Cannot mark as read - not connected or no user');
+            return;
+          }
+
+          // 탭이 비활성화 상태면 읽음 처리 스킵 (백그라운드에서 읽음 방지)
+          if (document.visibilityState !== 'visible') {
+            console.log('[ChatRoom] Tab not visible - skipping read');
+            return;
+          }
+
+          // WebSocket으로 읽음 처리 요청
+          console.log('[ChatRoom] Marking messages as read via WebSocket for room:', roomId);
+          stompClient.current.publish({
+            destination: `/pub/chats/${roomId}/read`,
+            body: JSON.stringify({
+              user_id: user.id,
+            }),
+          });
+        };
 
         // 메시지 구독
         client.subscribe(`/topic/chats/${roomId}`, (message) => {
@@ -137,17 +173,8 @@ export function useChatRoomSocket(
           handleReadEvent(readEvent);
         });
 
-        // // 재연결 시 누락된 메시지 동기화
-        // if (isReconnect) {
-        //   console.log('[ChatRoom] Reconnected - syncing messages');
-        //   onReconnect?.();
-        // }
-
         // 채팅방 진입 시 자동 읽음 처리
         markAllAsReadRef.current?.();
-
-        // 최초 연결 플래그 업데이트
-        // isFirstConnection.current = false;
       },
       onStompError: (frame) => {
         console.error('[ChatRoom] STOMP error:', frame.headers['message']);
@@ -165,21 +192,30 @@ export function useChatRoomSocket(
     return () => {
       console.log('[ChatRoom] Cleaning up - deactivating WebSocket');
       client.deactivate();
-      // 클린업 시 최초 연결 플래그 리셋
-      // isFirstConnection.current = true;
+      markAllAsReadRef.current = null;
+      isFirstConnect.current = true; // cleanup 시 초기화
     };
-  }, [roomId, user, handleReadEvent]);
-  // }, [roomId, user, handleReadEvent, onReconnect]);
+  }, [roomId, user, handleReadEvent, onReconnect]);
 
-  // 외부에서 호출할 수 있는 wrapper 함수
-  const markAllAsRead = useCallback(() => {
-    markAllAsReadRef.current?.();
-  }, []);
+    // Window Visibility API - 탭 활성화 시 읽음 처리
+    useEffect(() => {
+        const handleVisibilityChange = () => {
+            if (document.visibilityState === 'visible') {
+                console.log('[ChatRoom] Tab became visible - marking messages as read');
+                markAllAsReadRef.current?.();
+            }
+        };
+
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+
+        return () => {
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
+        };
+    }, []);
 
   return {
     realtimeMessages,
     isConnected,
     sendMessage,
-    markAllAsRead,
   };
 }

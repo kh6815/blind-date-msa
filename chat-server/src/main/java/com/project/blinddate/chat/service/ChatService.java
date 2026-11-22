@@ -292,8 +292,13 @@ public class ChatService {
     }
 
     /**
-     * Timestamp 기반으로 메시지들을 읽음 처리합니다 (동기 처리 + 경량 이벤트 생성).
+     * Timestamp 기반으로 메시지들을 읽음 처리합니다.
      * readAt 시간 이전의 모든 읽지 않은 메시지를 읽음 처리합니다.
+     * MongoDB 쿼리 레벨에서 필터링하여 성능 최적화.
+     *
+     * 사용처:
+     * - WebSocket을 통한 사용자 직접 요청
+     * - Kafka를 통한 읽음 이벤트 재처리 (멱등성 보장)
      *
      * @param roomId 채팅방 ID
      * @param userId 읽음 처리할 사용자 ID
@@ -306,23 +311,20 @@ public class ChatService {
         ChatRoom room = chatRoomRepository.findById(roomId)
                 .orElseThrow(() -> new IllegalArgumentException("채팅방을 찾을 수 없습니다."));
 
-        List<ChatMessage> messages = chatMessageRepository.findByRoomIdOrderBySentAtAsc(roomId);
+        // MongoDB 쿼리 레벨에서 필터링된 메시지 조회
+        List<ChatMessage> unreadMessages = chatMessageRepository.findUnreadMessagesBeforeTime(roomId, userId, readAt);
 
-        // readAt 시간 이전의 읽지 않은 메시지만 필터링하여 읽음 처리
-        List<ChatMessage> updatedMessages = messages.stream()
-                .filter(msg -> !msg.isReadBy(userId))  // 아직 안 읽은 메시지
-                .filter(msg -> !msg.getSentAt().isAfter(readAt))  // readAt 이전에 전송된 메시지
-                .peek(msg -> msg.markAsReadBy(userId, readAt))
-                .collect(Collectors.toList());
+        // 읽음 처리
+        unreadMessages.forEach(msg -> msg.markAsReadBy(userId, readAt));
 
         // 변경된 메시지들 일괄 저장
-        if (!updatedMessages.isEmpty()) {
-            chatMessageRepository.saveAll(updatedMessages);
+        if (!unreadMessages.isEmpty()) {
+            chatMessageRepository.saveAll(unreadMessages);
             log.info("Marked {} messages as read for user {} in room {} (readAt: {})",
-                    updatedMessages.size(), userId, roomId, readAt);
+                    unreadMessages.size(), userId, roomId, readAt);
         }
 
-        return updatedMessages.size();
+        return unreadMessages.size();
     }
 
     /**
@@ -406,47 +408,6 @@ public class ChatService {
 
         String key = USER_PRESENCE_KEY_PREFIX + userId;
         return redisTemplate.hasKey(key);
-    }
-
-    /**
-     * Kafka를 통해 전달된 읽음 이벤트를 처리하여 DB에 반영합니다 (Timestamp 기반).
-     * 주의: 이 메서드는 멱등성을 보장합니다.
-     *
-     * 목적:
-     * 1. 백업/감사 로그: Kafka 토픽에 읽음 이벤트가 영구적으로 기록됨
-     * 2. 재처리 지원: markMessagesAsReadByTimestamp 실패 시 Kafka를 통해 재처리
-     * 3. 분산 환경 일관성: 여러 서버 인스턴스 간 데이터 동기화
-     *
-     * @param event 읽음 이벤트
-     */
-    @Transactional
-    public void processReadEvent(ChatMessageReadEvent event) {
-        String roomId = event.getRoomId();
-        Long userId = event.getUserId();
-        Instant readAt = event.getReadAt();
-
-        log.info("Processing read event from Kafka for room: {}, user: {}, readAt: {}", roomId, userId, readAt);
-
-        // 채팅방 존재 확인
-        ChatRoom room = chatRoomRepository.findById(roomId)
-                .orElseThrow(() -> new IllegalArgumentException("채팅방을 찾을 수 없습니다."));
-
-        List<ChatMessage> messages = chatMessageRepository.findByRoomIdOrderBySentAtAsc(roomId);
-
-        // readAt 시간 이전의 읽지 않은 메시지만 필터링하여 읽음 처리 (멱등성 보장)
-        List<ChatMessage> updatedMessages = messages.stream()
-                .filter(msg -> !msg.isReadBy(userId))  // 아직 안 읽은 메시지
-                .filter(msg -> !msg.getSentAt().isAfter(readAt))  // readAt 이전 메시지
-                .peek(msg -> msg.markAsReadBy(userId, readAt))
-                .collect(Collectors.toList());
-
-        // 변경된 메시지들 일괄 저장
-        if (!updatedMessages.isEmpty()) {
-            chatMessageRepository.saveAll(updatedMessages);
-            log.info("Updated {} messages as read for user: {} via Kafka", updatedMessages.size(), userId);
-        } else {
-            log.debug("No messages to update for user: {} in room: {} (already processed)", userId, roomId);
-        }
     }
 }
 

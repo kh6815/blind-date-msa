@@ -88,6 +88,37 @@ public class ChatWebSocketController {
                 .build();
         chatKafkaProducer.send(event);
     }
+
+    /**
+     * WebSocket을 통한 메시지 읽음 처리 (비동기 최적화)
+     *
+     * 성능 최적화를 위해 다음 순서로 처리:
+     * 1. Redis Pub/Sub으로 실시간 알림 즉시 전송 (상대방에게 unread_count 업데이트)
+     * 2. Kafka로 이벤트 발행 (비동기 DB 업데이트)
+     * 3. Kafka Consumer에서 DB 업데이트 처리 (ChatKafkaConsumer.consumeReadEvent)
+     */
+    @MessageMapping("/chats/{roomId}/read")
+    public void markMessagesAsRead(
+            @DestinationVariable String roomId,
+            @Payload ChatMessageReadRequest request
+    ) {
+        Long userId = request.getUserId();
+        Instant now = Instant.now();
+
+        // 경량 읽음 이벤트 생성 (DB 조회 없이 즉시 생성)
+        ChatMessageReadEvent event = ChatMessageReadEvent.builder()
+                .roomId(roomId)
+                .userId(userId)
+                .readAt(now)
+                .build();
+
+        // 1. 즉시 Redis 발행 (실시간 알림 최우선)
+        chatRedisPublisher.publishReadEvent(event);
+
+        // 2. Kafka 발행 (비동기 DB 처리)
+        // → ChatKafkaConsumer.consumeReadEvent()에서 DB 업데이트
+        chatKafkaProducer.sendReadEvent(event);
+    }
 }
 
 

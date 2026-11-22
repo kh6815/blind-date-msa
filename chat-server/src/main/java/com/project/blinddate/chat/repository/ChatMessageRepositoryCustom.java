@@ -2,6 +2,7 @@ package com.project.blinddate.chat.repository;
 
 import com.project.blinddate.chat.domain.ChatMessage;
 
+import java.time.Instant;
 import java.util.List;
 
 /**
@@ -19,4 +20,15 @@ public interface ChatMessageRepositoryCustom {
      * @return 읽지 않은 메시지 목록 (최근 메시지부터 내림차순)
      */
     List<ChatMessage> findUnreadMessagesByUserId(String roomId, Long userId, int limit);
+
+    /**
+     * 특정 시간 이전에 전송되었고 특정 사용자가 읽지 않은 메시지를 조회합니다.
+     * 성능 최적화: MongoDB 쿼리 레벨에서 필터링
+     *
+     * @param roomId 채팅방 ID
+     * @param userId 사용자 ID
+     * @param readAt 읽음 처리 기준 시간 (이 시간 이전의 메시지만 조회)
+     * @return 읽지 않은 메시지 목록 (오래된 메시지부터 오름차순)
+     */
+    List<ChatMessage> findUnreadMessagesBeforeTime(String roomId, Long userId, Instant readAt);
 }

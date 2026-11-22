@@ -8,6 +8,7 @@ import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.stereotype.Repository;
 
+import java.time.Instant;
 import java.util.List;
 
 /**
@@ -32,6 +33,21 @@ public class ChatMessageRepositoryCustomImpl implements ChatMessageRepositoryCus
 
         // 최대 limit개만 조회
         query.limit(limit);
+
+        return mongoTemplate.find(query, ChatMessage.class);
+    }
+
+    @Override
+    public List<ChatMessage> findUnreadMessagesBeforeTime(String roomId, Long userId, Instant readAt) {
+        // MongoDB 쿼리: readBy 맵에 userId 키가 존재하지 않고, sentAt이 readAt 이전인 메시지
+        // { "roomId": roomId, "readBy.{userId}": { $exists: false }, "sentAt": { $lte: readAt } }
+        Query query = new Query();
+        query.addCriteria(Criteria.where("roomId").is(roomId));
+        query.addCriteria(Criteria.where("readBy." + userId).exists(false));
+        query.addCriteria(Criteria.where("sentAt").lte(readAt));
+
+        // 오래된 메시지부터 오름차순 정렬
+        query.with(Sort.by(Sort.Direction.ASC, "sentAt"));
 
         return mongoTemplate.find(query, ChatMessage.class);
     }
