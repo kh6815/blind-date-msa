@@ -6,7 +6,7 @@
 set -e
 
 # 도메인 설정 (실제 도메인으로 변경 필요)
-domains=(user.blind-date.site chat.blind-date.site minio.blind-date.site)
+domains=(user.blind-date.site chat.blind-date.site minio.blind-date.site app.blind-date.site)
 email="test@naver.com" # 실제 이메일로 변경 필요
 staging=0 # 테스트용 0, 실제 운영용 1
 

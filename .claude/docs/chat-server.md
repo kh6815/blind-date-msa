@@ -24,11 +24,27 @@ chat-server의 실시간 메시지 처리 구조(WebSocket + Redis Pub/Sub + Kaf
 
 1. 메시지 ID(UUID) 생성, 발신자를 `readBy`에 즉시 기록(자동 읽음 처리)
 2. `ChatRoomCacheService`로 참여자 수 조회(Redis 캐시 우선, 미스 시 DB 조회 후 TTL 24h 캐싱)
-3. **DB 저장을 기다리지 않고** `ChatRedisPublisher.publish()`로 즉시 Redis 발행 → `ChatRedisSubscriber`가 STOMP로 broadcast (응답속도 우선)
+3. **DB 저장을 기다리지 않고** `ChatRedisPublisher.publishMessage()`로 즉시 Redis 발행 (`chat:message:{roomId}` 채널) → `ChatRedisSubscriber`가 STOMP로 broadcast (응답속도 우선)
 4. `ChatKafkaProducer.send()`로 `chat-message-save` 토픽에 비동기 저장 이벤트 발행
-5. `ChatKafkaConsumer.consumeMessage()`가 소비해 `ChatService.saveMessage()`로 MongoDB 영속화, 발신자 제외 수신자에게 `unread-badge` Redis 채널로 SSE 뱃지 갱신 신호 발행
+5. `ChatKafkaConsumer.consumeMessage()`가 소비해 `ChatService.saveMessage()`로 MongoDB 영속화
+6. 메시지 저장 후 `ChatRedisPublisher.publishChatRoomUpdate()` 호출로 `ChatRoomUpdateEvent`(타입: UPDATED) 발행 → 사용자별 `/topic/users/{userId}/chat-updates` 토픽으로 채팅방 목록 갱신 (O(1) 최적화)
 
-읽음 처리(`PUT /rooms/{roomId}/messages/read`)는 동기 DB 갱신 + Redis 즉시 broadcast + Kafka 백업 이벤트(멱등 처리)로 이원화. Kafka Consumer는 실패 시 `DeadLetterPublishingRecoverer` + `FixedBackOff(1000ms, 3회)`로 `.DLT` 토픽 전송.
+**읽음 처리 최적화 (Timestamp 기반, 커밋 507a355)**:
+
+- `ChatWebSocketController.markMessagesAsRead()` (`/pub/chats/{roomId}/read`): WebSocket으로 읽음 요청 수신
+- **즉시 처리**: `ChatRedisPublisher`로 읽음 이벤트 브로드캐스트 (`/topic/chats/{roomId}/read`) → 실시간 UI 업데이트
+- **비동기 DB 저장**: Kafka `chat-message-read` 토픽으로 발행 → `ChatKafkaConsumer`가 MongoDB 갱신
+- **쿼리 최적화**: 메시지 ID 개별 처리 대신 **Timestamp 기반 일괄 처리** (`sent_at <= read_at`)로 O(N) → O(1) 개선
+- MongoDB 쿼리: `decrementUnreadCountByTimestamp()` - 읽음 시각 이후 모든 메시지의 `unread_count` 일괄 감소
+
+**ChatRoomUpdateEvent 시스템 (커밋 51456db)**:
+
+- `ChatRoomUpdateEvent` DTO: `update_type` (CREATED/UPDATED/DELETED), `room_id`, `chat_room`, `last_message_preview`, `last_message_at`, `unread_message_count`
+- **구독 최적화**: 프론트엔드가 N개 채팅방 개별 구독 대신 **단일 토픽** `/topic/users/{userId}/chat-updates` 구독 (O(N) → O(1))
+- `ChatRedisPublisher.publishChatRoomUpdate()`: Redis `chat:room:update` 채널로 발행
+- `ChatRedisSubscriber`: 참여자 각각에게 사용자별 토픽으로 푸시
+
+Kafka Consumer는 실패 시 `DeadLetterPublishingRecoverer` + `FixedBackOff(1000ms, 3회)`로 `.DLT` 토픽 전송.
 
 ### 도메인 모델 (MongoDB, JPA 아님)
 
@@ -57,6 +73,8 @@ user-server와 동일 구조(`CustomLogger`, `MDCHelper`, `JsonLogLayout`, `Requ
 ## 주요 규칙
 
 - 메시지의 "실시간 전달"과 "영속화"는 분리되어 있다 — Redis 발행이 먼저, Kafka를 통한 DB 저장은 비동기로 나중에 일어난다. 메시지 저장 로직을 수정할 때 이 순서를 깨뜨리지 않는다.
+- **읽음 처리는 Timestamp 기반**으로 처리한다 — 메시지 ID 개별 처리는 성능 문제가 있으므로 `sent_at <= read_at` 조건으로 일괄 처리한다.
+- **채팅방 목록 업데이트는 사용자별 단일 토픽**(`/topic/users/{userId}/chat-updates`)을 사용한다 — 개별 채팅방 구독은 확장성 문제가 있다.
 - 채팅 도메인은 MongoDB(Spring Data MongoDB)이며 JPA/MyBatis가 아니다.
 - user-server 유저 정보는 항상 `ChatUserInfo` 캐시를 거쳐 조회한다 — Feign 직접 호출을 기본 경로로 추가하지 않는다.
 
@@ -71,5 +89,11 @@ user-server와 동일 구조(`CustomLogger`, `MDCHelper`, `JsonLogLayout`, `Requ
 - `chat-server/src/main/java/com/project/blinddate/chat/controller/ChatWebSocketController.java`, `ChatController.java`
 - `chat-server/src/main/java/com/project/blinddate/chat/service/ChatService.java`, `ChatKafkaProducer.java`, `ChatKafkaConsumer.java`, `ChatRedisPublisher.java`, `ChatRedisSubscriber.java`, `UserInfoCacheService.java`, `ChatRoomCacheService.java`
 - `chat-server/src/main/java/com/project/blinddate/chat/domain/ChatMessage.java`, `ChatRoom.java`, `ChatUserInfo.java`
+- `chat-server/src/main/java/com/project/blinddate/chat/dto/ChatRoomUpdateEvent.java` (신규)
+- `chat-server/src/main/java/com/project/blinddate/chat/repository/ChatMessageRepositoryCustomImpl.java` (Timestamp 기반 쿼리)
 - `chat-server/src/main/java/com/project/blinddate/chat/migration/DatabaseChangelog.java`, `AddReadByFieldChangelog.java`
 - `chat-server/src/main/java/com/project/blinddate/chat/external/user_client/UserFeignClient.java`
+
+## 추가 참고 문서
+
+- [[websocket]] - WebSocket 실시간 통신 구조 상세 (STOMP, Redis Pub/Sub 통합, 읽음 처리, 구독 최적화)

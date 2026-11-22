@@ -4,16 +4,17 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Blind Date is a real-time dating app backend built with **MSA (Microservices Architecture)** using Spring Boot 3.x, Java 17, and Gradle multi-module setup. The system separates User and Chat domains into independent services that communicate via Kafka events.
+Blind Date is a real-time dating app built with **MSA (Microservices Architecture)** using Spring Boot 3.x, Java 17, and React 19. The system separates User and Chat domains into independent backend services that communicate via Kafka events, with a modern React SPA frontend.
 
-**Live URL:** https://user.blind-date.site
-**Test Account:** user@test.com / 1234
+**Live URL:** https://app.blind-date.site
+**Test Account:** test_user_1@example.com / password
 
 ## Architecture
 
 ### Services
 - **user-server** (port 8081): User/Profile/Authentication domain with MySQL, JPA, Flyway
 - **chat-server** (port 8082): Real-time chat with WebSocket (STOMP), MongoDB, Mongock
+- **frontend**: React 19 SPA with TypeScript, TailwindCSS, TanStack Query
 
 ### Infrastructure
 - **MySQL 8**: User server transactional data (users, user_images tables)
@@ -32,6 +33,8 @@ Services communicate **exclusively via Kafka** (not HTTP). Key topics:
 ## Development Commands
 
 ### Build & Run
+
+**Backend (Gradle):**
 ```bash
 # Build entire project
 ./gradlew build
@@ -55,6 +58,26 @@ Services communicate **exclusively via Kafka** (not HTTP). Key topics:
 
 # Clean build
 ./gradlew clean
+```
+
+**Frontend (npm):**
+```bash
+cd frontend
+
+# Install dependencies
+npm install
+
+# Start development server (Vite)
+npm run dev
+
+# Build for production
+npm run build
+
+# Preview production build
+npm run preview
+
+# Run linter
+npm run lint
 ```
 
 ### Docker Environment
@@ -99,14 +122,27 @@ Controller → Service → Repository → Entity
 6. **Transaction Management**: Domain-specific `@Transactional` with explicit transaction managers
 
 ### Technology Stack
+
+**Backend:**
 - **Java 17**: Switch expressions, text blocks, records (for DTOs use `class` not `record`)
 - **Lombok**: `@Getter`, `@Builder`, `@RequiredArgsConstructor` (NO `@Setter`)
 - **MapStruct**: Entity ↔ DTO mapping
 - **QueryDSL** (user-server): Type-safe complex queries
 - **JWT**: Authentication tokens (user-server)
-- **WebSocket STOMP** (chat-server): Real-time chat
+- **WebSocket STOMP** (chat-server): Real-time chat (see [WebSocket documentation](docs/websocket.md))
 - **P6Spy**: SQL logging
 - **Logstash Logback Encoder**: JSON-formatted logs sent to Loki
+
+**Frontend:**
+- **React 19**: Latest React with hooks and concurrent features
+- **TypeScript**: Type-safe JavaScript development
+- **Vite**: Fast build tool and dev server
+- **TailwindCSS**: Utility-first CSS framework
+- **TanStack Query (React Query)**: Server state management and caching
+- **Zustand**: Lightweight global state management
+- **React Router 7**: Client-side routing
+- **@stomp/stompjs**: WebSocket STOMP client
+- **Axios**: HTTP client with interceptors
 
 ### Testing
 - **JUnit 5 + Mockito + AssertJ**
@@ -118,32 +154,47 @@ Controller → Service → Repository → Entity
 
 ### user-server (`/user-server/src/main/java/com/project/blinddate/user`)
 - `config/`: Security, Kafka, MinIO, QueryDSL, CORS, Redis
-- `controller/`: REST API + Thymeleaf view controllers
-- `domain/`: JPA entities (User, UserImage)
+- `controller/`: REST API controllers
+- `domain/`: JPA entities (User, UserImage, UserLikes, UserViews)
 - `dto/`: Request/Response DTOs with snake_case JSON
 - `exception/`: Global exception handlers
 - `filter/`: Request logging filters
 - `logger/`: Custom MDC logging, JSON layout
 - `mapper/`: MapStruct mappers
 - `repository/`: JPA + QueryDSL repositories
-- `security/`: JWT token utilities
+- `security/`: JWT token utilities, authentication filters
 - `service/`: Business logic + Kafka producers
 - `aop/`: Activity logging
 
 ### chat-server (`/chat-server/src/main/java/com/project/blinddate/chat`)
 - `config/`: Security, MongoDB, Redis, Kafka, WebSocket, CORS
-- `controller/`: REST API + WebSocket + Thymeleaf views
+- `controller/`: REST API + WebSocket controllers
 - `domain/`: MongoDB documents (ChatRoom, ChatMessage, MessageType)
-- `dto/`: Request/Response DTOs
+- `dto/`: Request/Response DTOs, ChatRoomUpdateEvent
 - `exception/`: Global exception handlers
-- `external/`: Feign client for user-server (if needed, though prefer Kafka)
+- `external/`: Feign client for user-server (fallback only, prefer Kafka)
 - `filter/`: Request logging
 - `logger/`: MDC logging
 - `mapper/`: MapStruct mappers
 - `migration/`: Mongock migration scripts
-- `repository/`: MongoDB repositories
+- `repository/`: MongoDB repositories with custom queries
 - `service/`: Chat business logic + Kafka consumers + Redis Pub/Sub
 - `aop/`: Chat activity logging + caching
+
+### frontend (`/frontend/src`)
+- `features/`: Feature-based module organization
+  - `auth/`: Login, signup, authentication hooks
+  - `chat/`: Chat rooms, messages, WebSocket hooks
+  - `home/`: User list, user details
+  - `likes/`: Like list page
+  - `profile/`: Profile view/edit pages
+- `shared/`: Shared components and utilities
+  - `api/`: Axios clients (userApiClient, chatApiClient)
+  - `components/`: Layout, ImageModal
+- `store/`: Zustand stores (useAuthStore)
+- `routes/`: React Router configuration
+- `types/`: TypeScript type definitions
+- `lib/`: TanStack Query configuration
 
 ### Database Migrations
 - **user-server**: Flyway scripts in `src/main/resources/db/migration/` (versioned SQL)

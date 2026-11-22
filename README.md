@@ -178,11 +178,14 @@ curl http://localhost:8082/api/v1/chats/health
 | 구분 | 기술 | 용도                                   |
 |------|------|--------------------------------------|
 | **언어·프레임워크** | Java 17, Spring Boot 3.x | 백엔드 API·비즈니스 로직                      |
-| **아키텍처** | MSA, 멀티 모듈(Gradle) | 유저 서버 / 채팅 서버 분리                     |
+| **프론트엔드** | React 19, TypeScript, Vite | SPA 프론트엔드 애플리케이션                     |
+| **UI/스타일** | TailwindCSS | 유틸리티 기반 스타일링                        |
+| **상태 관리** | Zustand, TanStack Query | 클라이언트 상태·서버 상태 캐싱                   |
+| **아키텍처** | MSA, 멀티 모듈(Gradle) | 유저 서버 / 채팅 서버 / 프론트엔드 분리            |
 | **DB** | MySQL 8, MongoDB 7 | 유저·매칭(정합성) / 채팅 메시지(대량·유연 스키마)       |
 | **캐시·메시지** | Redis 7, Apache Kafka | 세션·캐시·Pub/Sub·실시간성 / 서버 간 이벤트 비동기 전달 |
 | **파일 저장** | MinIO | 프로필·채팅 이미지 오브젝트 스토리지                 |
-| **실시간 통신** | WebSocket (STOMP) | 채팅 실시간 송수신                           |
+| **실시간 통신** | WebSocket (STOMP), @stomp/stompjs | 채팅 실시간 송수신                           |
 | **인증** | Spring Security, JWT | 로그인·API 인증                           |
 | **검색·쿼리** | QueryDSL, Spring Data JPA | 복잡 조회·타입 세이프 쿼리                      |
 | **API 문서** | Springdoc OpenAPI (Swagger) | API 명세·테스트                           |
@@ -201,7 +204,7 @@ blind-date/
 │   │   │   ├── common/             # API 경로 상수, 공통 DTO
 │   │   │   └── user/
 │   │   │       ├── config/         # Security, Kafka, MinIO, QueryDSL, CORS
-│   │   │       ├── controller/     # REST API · Thymeleaf 뷰
+│   │   │       ├── controller/     # REST API
 │   │   │       ├── domain/         # JPA Entity (User, UserImage, UserLikes, UserViews)
 │   │   │       ├── dto/            # Request/Response DTO
 │   │   │       ├── exception/      # 전역 예외 처리
@@ -214,8 +217,6 @@ blind-date/
 │   │   │       └── aop/            # 활동 로깅 AOP
 │   │   └── resources/
 │   │       ├── db/migration/       # Flyway SQL 마이그레이션
-│   │       ├── templates/          # Thymeleaf HTML
-│   │       ├── static/             # CSS, JS
 │   │       └── application.yaml
 │   └── build.gradle
 │
@@ -225,9 +226,9 @@ blind-date/
 │   │   │   ├── common/             # API 경로 상수, 공통 DTO
 │   │   │   └── chat/
 │   │   │       ├── config/         # Security, MongoDB, Redis, Kafka, WebSocket
-│   │   │       ├── controller/     # REST API · WebSocket · Thymeleaf
+│   │   │       ├── controller/     # REST API · WebSocket
 │   │   │       ├── domain/         # MongoDB Document (ChatRoom, ChatMessage)
-│   │   │       ├── dto/            # Request/Response DTO
+│   │   │       ├── dto/            # Request/Response DTO, ChatRoomUpdateEvent
 │   │   │       ├── exception/      # 전역 예외 처리
 │   │   │       ├── external/       # User 서버 Feign 클라이언트
 │   │   │       ├── filter/         # 요청 로깅
@@ -238,13 +239,51 @@ blind-date/
 │   │   │       ├── service/        # 채팅 로직, Kafka Consumer, Redis Pub/Sub
 │   │   │       └── aop/            # 캐싱 AOP
 │   │   └── resources/
-│   │       ├── templates/          # Thymeleaf HTML
-│   │       ├── static/             # CSS, JS
 │   │       └── application.yaml
 │   └── build.gradle
 │
+├── frontend/                       # React SPA 프론트엔드
+│   ├── src/
+│   │   ├── features/               # 기능별 모듈 (auth, chat, home, profile, likes)
+│   │   │   ├── auth/               # 인증 (로그인, 회원가입)
+│   │   │   │   ├── api/            # API 호출 함수
+│   │   │   │   ├── hooks/          # Custom React Hooks
+│   │   │   │   └── pages/          # 페이지 컴포넌트
+│   │   │   ├── chat/               # 채팅 기능
+│   │   │   │   ├── api/
+│   │   │   │   ├── hooks/          # useChatRoomSocket, useChatListSocket, useChatScroll
+│   │   │   │   ├── pages/
+│   │   │   │   └── util/           # DataFormatter
+│   │   │   ├── home/               # 메인 화면 (사용자 목록)
+│   │   │   │   ├── api/
+│   │   │   │   ├── hooks/
+│   │   │   │   └── pages/
+│   │   │   ├── likes/              # 좋아요 목록
+│   │   │   │   ├── api/
+│   │   │   │   ├── hooks/
+│   │   │   │   └── pages/
+│   │   │   └── profile/            # 프로필 관리
+│   │   │       ├── api/
+│   │   │       ├── hooks/
+│   │   │       └── pages/
+│   │   ├── shared/                 # 공통 컴포넌트 및 유틸리티
+│   │   │   ├── api/                # Axios 클라이언트 (userApiClient, chatApiClient)
+│   │   │   └── components/         # Layout, ImageModal
+│   │   ├── store/                  # Zustand 전역 상태 (useAuthStore)
+│   │   ├── routes/                 # React Router 설정
+│   │   ├── types/                  # TypeScript 타입 정의
+│   │   ├── lib/                    # TanStack Query 설정
+│   │   ├── App.tsx
+│   │   └── main.tsx
+│   ├── Dockerfile                  # 멀티 스테이지 빌드 (Node.js → Nginx)
+│   ├── nginx.conf                  # SPA 라우팅 설정
+│   ├── package.json
+│   ├── tailwind.config.js
+│   ├── vite.config.ts
+│   └── tsconfig.json
+│
 ├── monitoring/                     # Prometheus, Grafana, Loki, Alloy 설정
-├── nginx/                          # Nginx 설정 (HTTPS, 리버스 프록시)
+├── nginx/                          # Nginx 설정 (HTTPS, 리버스 프록시, 프론트엔드 서빙)
 ├── docker-compose.yml
 ├── build.gradle
 └── settings.gradle
@@ -610,6 +649,7 @@ COOKIE_DOMAIN=.blind-date.site
 - ✅ **로그 수집 파이프라인**: Alloy를 통한 중앙화된 로그 관리
 - ✅ **HTTPS 적용**: mkcert + Nginx TLS 종료
 - ✅ **오라클 클라우드 배포**: 운영 환경 구축 완료
+- ✅ **React 프론트엔드 마이그레이션**: Thymeleaf → React SPA 전환 완료
 
 ### 기술적 개선 사항
 
@@ -617,6 +657,13 @@ COOKIE_DOMAIN=.blind-date.site
 - **확장성**: Kafka 이벤트 기반 통신으로 서비스 간 결합도 최소화
 - **안정성**: Kafka DLT, Redis RDB+AOF, Health Check 메커니즘 도입
 - **관찰성**: JSON 로그 + MDC 요청 추적 + Grafana 대시보드
+- **프론트엔드 현대화**:
+  - Thymeleaf SSR → React SPA로 마이그레이션
+  - Feature-based 아키텍처로 모듈화 (auth, chat, home, profile, likes)
+  - TanStack Query로 서버 상태 캐싱 및 자동 재검증
+  - Custom Hooks로 WebSocket 로직 캡슐화 (useChatRoomSocket, useChatListSocket)
+  - Zustand로 경량 전역 상태 관리
+  - WebSocket 구독 최적화: N개 채팅방 구독 → 1개 사용자별 토픽 구독 (O(N) → O(1))
 
 ### 🧪 테스트 및 학습 목적으로 구현
 

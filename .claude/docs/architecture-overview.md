@@ -17,7 +17,8 @@ blind-date-msa는 user-server와 chat-server 두 개의 독립 Spring Boot 서�
 | 서비스 | 포트 | 주 저장소 | 역할 |
 |---|---|---|---|
 | user-server | 8081 | MySQL(JPA) | 회원가입/로그인, 프로필, 좋아요, 추천 검색 |
-| chat-server | 8082 | MongoDB | 채팅방, 메시지, 실시간 알림(SSE 뱃지) |
+| chat-server | 8082 | MongoDB | 채팅방, 메시지, 실시간 알림 |
+| frontend | 80/443(nginx) | - | React 19 SPA, TanStack Query, Zustand, WebSocket 클라이언트 |
 
 공유 인프라: Redis(인증 세션·presence·pub/sub 공용 단일 인스턴스), Kafka(비동기 이벤트 버스), MinIO(이미지 스토리지, 양쪽 서버가 각자 버킷 사용).
 
@@ -34,8 +35,13 @@ blind-date-msa는 user-server와 chat-server 두 개의 독립 Spring Boot 서�
 
 ### 실시간 기능
 
-- chat-server: WebSocket(STOMP) + Redis Pub/Sub(다중 인스턴스 브로드캐스트) + Kafka(비동기 영속화) 3단 구조. 자세한 내용은 [[chat-server]] 참고.
-- user-server: 좋아요 알림을 Redis Pub/Sub → SSE로 전달.
+- **chat-server**: WebSocket(STOMP) + Redis Pub/Sub(다중 인스턴스 브로드캐스트) + Kafka(비동기 영속화) 3단 구조. 자세한 내용은 [[chat-server]], [[websocket]] 참고.
+- **user-server**: 좋아요 알림을 Redis Pub/Sub → SSE로 전달.
+- **frontend**:
+  - `@stomp/stompjs` + `sockjs-client`로 WebSocket 연결
+  - Custom Hooks(`useChatRoomSocket`, `useChatListSocket`)로 실시간 메시지/채팅방 업데이트 처리
+  - TanStack Query로 서버 상태 캐싱 및 자동 재검증
+  - **구독 최적화**: 사용자별 단일 토픽 `/topic/users/{userId}/chat-updates` 구독으로 O(N) → O(1) 개선
 
 ### 다중 인스턴스 구조
 

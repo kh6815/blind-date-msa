@@ -425,11 +425,28 @@ services:
     networks:
       - app-net
 
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: frontend
+    restart: unless-stopped
+    logging: *default-logging
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://127.0.0.1/health || exit 1"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+    networks:
+      - app-net
+
   nginx:
     image: nginx:1.25-alpine
     container_name: nginx
     logging: *default-logging
     depends_on:
+      - frontend
       - user-server-1
       - chat-server-1
     ports:
@@ -454,6 +471,7 @@ services:
           - chat.blind-date.site
           - minio.blind-date.site
           - grafana.blind-date.site
+          - app.blind-date.site
 
   # ── Certbot (SSL 인증서 자동 갱신) ──────────────────────────────────────
   certbot:
