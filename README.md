@@ -1,4 +1,4 @@
-# Blind Date – 소개팅 실시간 매칭 & 채팅 MSA 백엔드
+# Blind Date – 소개팅 실시간 매칭 & 채팅 MSA 백엔드 & React 프론트
 
 **Blind-Date**는 주변에 있는 사람들을 기반으로 새로운 인연을 만날 수 있는 소개팅 앱입니다.
 
@@ -117,6 +117,11 @@ curl http://localhost:8082/api/v1/chats/health
 
 # Chat Server 실행 (MongoDB, Redis, Kafka, MinIO 필요)
 ./gradlew :chat-server:bootRun
+
+# Frontend 개발 서버 실행
+cd frontend
+npm install
+npm run dev
 ```
 
 ---
@@ -124,9 +129,10 @@ curl http://localhost:8082/api/v1/chats/health
 ## ✨ 주요 기능
 
 ### 사용자 관리
-- **회원가입/로그인**: JWT 기반 인증, 자동 로그인 지원
+- **회원가입/로그인**: JWT 기반 인증, 자동 로그인 지원, 쿠키 기반 세션 관리
 - **프로필 관리**: MinIO를 활용한 다중 이미지 업로드, MBTI·관심사·직업 정보
 - **위치 기반 검색**: 내 주변 사용자 목록 조회 (위도/경도 기반)
+- **프로필 수정**: 실시간 프로필 정보 및 이미지 업데이트
 
 ### 매칭 시스템
 - **좋아요 기능**: 관심 있는 사용자에게 좋아요 전송
@@ -180,7 +186,9 @@ curl http://localhost:8082/api/v1/chats/health
 | **언어·프레임워크** | Java 17, Spring Boot 3.x | 백엔드 API·비즈니스 로직                      |
 | **프론트엔드** | React 19, TypeScript, Vite | SPA 프론트엔드 애플리케이션                     |
 | **UI/스타일** | TailwindCSS | 유틸리티 기반 스타일링                        |
-| **상태 관리** | Zustand, TanStack Query | 클라이언트 상태·서버 상태 캐싱                   |
+| **상태 관리** | Zustand, TanStack Query | 클라이언트 상태·서버 상태 캐싱 및 자동 재검증         |
+| **HTTP 클라이언트** | Axios | API 통신, 인터셉터를 통한 토큰 관리              |
+| **라우팅** | React Router 7 | SPA 클라이언트 사이드 라우팅                   |
 | **아키텍처** | MSA, 멀티 모듈(Gradle) | 유저 서버 / 채팅 서버 / 프론트엔드 분리            |
 | **DB** | MySQL 8, MongoDB 7 | 유저·매칭(정합성) / 채팅 메시지(대량·유연 스키마)       |
 | **캐시·메시지** | Redis 7, Apache Kafka | 세션·캐시·Pub/Sub·실시간성 / 서버 간 이벤트 비동기 전달 |
@@ -244,43 +252,55 @@ blind-date/
 │
 ├── frontend/                       # React SPA 프론트엔드
 │   ├── src/
-│   │   ├── features/               # 기능별 모듈 (auth, chat, home, profile, likes)
-│   │   │   ├── auth/               # 인증 (로그인, 회원가입)
-│   │   │   │   ├── api/            # API 호출 함수
-│   │   │   │   ├── hooks/          # Custom React Hooks
-│   │   │   │   └── pages/          # 페이지 컴포넌트
+│   │   ├── features/               # 기능별 모듈 (Feature-based Architecture)
+│   │   │   ├── auth/               # 인증 (로그인, 회원가입, 로그아웃)
+│   │   │   │   ├── api/            # authApi.ts - 로그인/회원가입 API
+│   │   │   │   ├── hooks/          # useAuth.ts - 인증 로직 Hook
+│   │   │   │   └── pages/          # LoginPage, SignupPage, LogoutPage
 │   │   │   ├── chat/               # 채팅 기능
-│   │   │   │   ├── api/
-│   │   │   │   ├── hooks/          # useChatRoomSocket, useChatListSocket, useChatScroll
-│   │   │   │   ├── pages/
-│   │   │   │   └── util/           # DataFormatter
+│   │   │   │   ├── api/            # chatApi.ts - 채팅방/메시지 API
+│   │   │   │   ├── hooks/          # useChatRoomSocket, useChatListSocket, useChatScroll, useChatRooms, useChatRoomMessages
+│   │   │   │   ├── pages/          # ChatListPage, ChatRoomPage, ChatRoomCreatePage
+│   │   │   │   └── util/           # DataFormatter.ts - 날짜/시간 포맷팅
 │   │   │   ├── home/               # 메인 화면 (사용자 목록)
-│   │   │   │   ├── api/
-│   │   │   │   ├── hooks/
-│   │   │   │   └── pages/
+│   │   │   │   ├── api/            # userApi.ts, likeApi.ts
+│   │   │   │   ├── hooks/          # useUsers, useLike
+│   │   │   │   └── pages/          # HomePage, UserDetailPage
 │   │   │   ├── likes/              # 좋아요 목록
-│   │   │   │   ├── api/
-│   │   │   │   ├── hooks/
-│   │   │   │   └── pages/
+│   │   │   │   ├── api/            # likesApi.ts
+│   │   │   │   ├── hooks/          # useLikes
+│   │   │   │   └── pages/          # LikeListPage
 │   │   │   └── profile/            # 프로필 관리
-│   │   │       ├── api/
-│   │   │       ├── hooks/
-│   │   │       └── pages/
+│   │   │       ├── api/            # profileApi.ts
+│   │   │       ├── hooks/          # useProfile, useCurrentUser
+│   │   │       └── pages/          # ProfilePage, EditProfilePage
 │   │   ├── shared/                 # 공통 컴포넌트 및 유틸리티
-│   │   │   ├── api/                # Axios 클라이언트 (userApiClient, chatApiClient)
+│   │   │   ├── api/                # client.ts - Axios 클라이언트 설정
 │   │   │   └── components/         # Layout, ImageModal
-│   │   ├── store/                  # Zustand 전역 상태 (useAuthStore)
+│   │   ├── store/                  # Zustand 전역 상태
+│   │   │   └── useAuthStore.ts     # 인증 상태 관리 (로그인 상태, 사용자 정보)
 │   │   ├── routes/                 # React Router 설정
+│   │   │   └── Router.tsx          # 라우트 정의, Protected Routes
 │   │   ├── types/                  # TypeScript 타입 정의
-│   │   ├── lib/                    # TanStack Query 설정
-│   │   ├── App.tsx
-│   │   └── main.tsx
+│   │   │   ├── auth.ts             # 인증 관련 타입
+│   │   │   ├── user.ts             # 사용자 관련 타입
+│   │   │   ├── chat.ts             # 채팅 관련 타입
+│   │   │   ├── like.ts             # 좋아요 관련 타입
+│   │   │   ├── api.ts              # API 응답 공통 타입
+│   │   │   └── index.ts            # 타입 Re-export
+│   │   ├── lib/                    # 라이브러리 설정
+│   │   │   └── queryClient.ts      # TanStack Query 클라이언트 설정
+│   │   ├── App.tsx                 # 최상위 App 컴포넌트
+│   │   └── main.tsx                # 엔트리 포인트
+│   ├── public/                     # 정적 파일
 │   ├── Dockerfile                  # 멀티 스테이지 빌드 (Node.js → Nginx)
-│   ├── nginx.conf                  # SPA 라우팅 설정
-│   ├── package.json
-│   ├── tailwind.config.js
-│   ├── vite.config.ts
-│   └── tsconfig.json
+│   ├── nginx.conf                  # SPA 라우팅 설정 (fallback to index.html)
+│   ├── package.json                # NPM 의존성 및 스크립트
+│   ├── tailwind.config.js          # TailwindCSS 설정
+│   ├── vite.config.ts              # Vite 빌드 도구 설정
+│   ├── tsconfig.json               # TypeScript 컴파일러 설정
+│   ├── tsconfig.node.json          # Node.js용 TypeScript 설정
+│   └── postcss.config.js           # PostCSS 설정
 │
 ├── monitoring/                     # Prometheus, Grafana, Loki, Alloy 설정
 ├── nginx/                          # Nginx 설정 (HTTPS, 리버스 프록시, 프론트엔드 서빙)
@@ -376,8 +396,9 @@ HTTPS 종료 및 User/Chat/MinIO 도메인별 리버스 프록시·로드밸런�
 |--------|------|--------|--------------|-----------|
 | **user-server-1, user-server-2** | 8081 | mysql, redis, kafka, minio | `/api/v1/users/health` (10s, 20s start) | `./logs/user-server-{1,2}` |
 | **chat-server-1, chat-server-2** | 8082 | mongo, redis, kafka, minio | `/api/v1/chats/health` (10s, 20s start) | `./logs/chat-server-{1,2}` |
+| **frontend** | 80/443 (Nginx) | user-server, chat-server | - | - |
 
-동일 이미지로 **User 2대, Chat 2대** 수평 확장하며, Nginx가 4개 인스턴스로 트래픽 분산합니다.
+동일 이미지로 **User 2대, Chat 2대** 수평 확장하며, Nginx가 4개 백엔드 인스턴스로 트래픽 분산하고 프론트엔드 정적 파일을 서빙합니다.
 
 #### 6. 볼륨 · 네트워크 요약
 
@@ -502,6 +523,7 @@ private final List<SseEmitter> emitterList = new CopyOnWriteArrayList<>();
 
 ### 빌드 & 테스트
 
+**백엔드 (Gradle):**
 ```bash
 # 전체 프로젝트 빌드
 ./gradlew build
@@ -514,6 +536,26 @@ private final List<SseEmitter> emitterList = new CopyOnWriteArrayList<>();
 ./gradlew test
 ./gradlew :user-server:test
 ./gradlew :chat-server:test
+```
+
+**프론트엔드 (npm):**
+```bash
+cd frontend
+
+# 의존성 설치
+npm install
+
+# 개발 서버 실행 (Vite)
+npm run dev
+
+# 프로덕션 빌드
+npm run build
+
+# 프로덕션 빌드 미리보기
+npm run preview
+
+# 린터 실행
+npm run lint
 ```
 
 ### 코드 규칙
@@ -658,12 +700,18 @@ COOKIE_DOMAIN=.blind-date.site
 - **안정성**: Kafka DLT, Redis RDB+AOF, Health Check 메커니즘 도입
 - **관찰성**: JSON 로그 + MDC 요청 추적 + Grafana 대시보드
 - **프론트엔드 현대화**:
-  - Thymeleaf SSR → React SPA로 마이그레이션
+  - Thymeleaf SSR → React 19 SPA로 마이그레이션
   - Feature-based 아키텍처로 모듈화 (auth, chat, home, profile, likes)
-  - TanStack Query로 서버 상태 캐싱 및 자동 재검증
-  - Custom Hooks로 WebSocket 로직 캡슐화 (useChatRoomSocket, useChatListSocket)
-  - Zustand로 경량 전역 상태 관리
+  - TanStack Query로 서버 상태 캐싱 및 자동 재검증, 낙관적 업데이트
+  - Custom Hooks로 비즈니스 로직 캡슐화:
+    - WebSocket: `useChatRoomSocket`, `useChatListSocket`
+    - 스크롤 관리: `useChatScroll` (자동 하단 이동, 무한 스크롤)
+    - 데이터 페칭: `useUsers`, `useLikes`, `useProfile`, `useChatRooms`
+  - Zustand로 경량 전역 상태 관리 (인증 상태)
+  - Axios 인터셉터로 토큰 자동 갱신 및 에러 처리
   - WebSocket 구독 최적화: N개 채팅방 구독 → 1개 사용자별 토픽 구독 (O(N) → O(1))
+  - Vite를 통한 고속 빌드 및 HMR (Hot Module Replacement)
+  - TypeScript 엄격 모드로 타입 안정성 확보
 
 ### 🧪 테스트 및 학습 목적으로 구현
 
