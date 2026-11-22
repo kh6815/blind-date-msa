@@ -5,9 +5,6 @@ import { useChatListSocket } from '@/features/chat/hooks/useChatListSocket.ts';
 import { formatRelativeTime } from '@/features/chat/util/DataFormatter.ts';
 import type { ChatRoom } from '@/types/chat';
 
-//TODO 새로운 채팅방을 실시간으로 반영하고 싶다면:
-//   1. 백엔드 개선: 새 채팅방 생성 시 /topic/users/{userId}/new-chat 같은 개인 토픽으로 알림 발행
-//   2. 프론트 개선: 해당 토픽을 구독하고, 알림 받으면 채팅방 목록 refetch
 function ChatListPage() {
   const pageSize = 20;
   const [page, setPage] = useState(0);
@@ -18,8 +15,8 @@ function ChatListPage() {
   const [rooms, setRooms] = useState<ChatRoom[]>([]);
   const [hasMore, setHasMore] = useState(true);
 
-    // WebSocket 연결 및 실시간 업데이트
-    useChatListSocket(rooms, setRooms);
+  // WebSocket 연결 및 실시간 업데이트
+  useChatListSocket(setRooms);
 
   // 타임스탬프 자동 갱신 (1분마다)
   const [currentTime, setCurrentTime] = useState(new Date());
@@ -95,7 +92,7 @@ function ChatListPage() {
       ) : (
         <>
           <div>
-            {rooms.map((room) => (
+            {rooms.filter((room) => room.last_message_preview).map((room) => (
               <Link
                 key={room.id}
                 to={`/chats/room/${room.id}`}
@@ -131,10 +128,10 @@ function ChatListPage() {
                   <span className="text-xs text-text-secondary whitespace-nowrap">
                     {formatRelativeTime(room.last_message_at, currentTime)}
                   </span>
-                  {room.unread_message_count && room.unread_message_count > 0 && (
+                 {(room.unread_message_count ?? 0) > 0 && (
                     <div className="min-w-[24px] h-6 bg-red-500 rounded-full flex items-center justify-center px-2">
                       <span className="text-white text-xs font-bold">
-                        {room.unread_message_count >= 10 ? '10+' : room.unread_message_count === 0 ? '' : room.unread_message_count }
+                        {(room.unread_message_count ?? 0) >= 10 ? '10+' : room.unread_message_count }
                       </span>
                     </div>
                   )}

@@ -25,7 +25,7 @@ class ChatKafkaConsumerTest {
 
     @Test
     @DisplayName("Kafka에서 수신한 채팅 메시지 이벤트를 ChatService로 위임한다")
-    void consume_success() {
+    void consumeMessage_success() {
         ChatMessageEvent event = ChatMessageEvent.builder()
                 .id("msg1")
                 .roomId("room1")
@@ -35,7 +35,7 @@ class ChatKafkaConsumerTest {
                 .sentAt(Instant.now())
                 .build();
 
-        chatKafkaConsumer.consume(event);
+        chatKafkaConsumer.consumeMessage(event);
 
         verify(chatService, times(1)).saveMessage(event);
     }

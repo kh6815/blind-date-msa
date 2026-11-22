@@ -1,9 +1,7 @@
 package com.project.blinddate.chat.controller;
 
 import com.project.blinddate.chat.domain.MessageType;
-import com.project.blinddate.chat.dto.ChatMessageEvent;
-import com.project.blinddate.chat.dto.ChatMessageResponse;
-import com.project.blinddate.chat.dto.ChatMessageSendRequest;
+import com.project.blinddate.chat.dto.*;
 import com.project.blinddate.chat.service.ChatKafkaProducer;
 import com.project.blinddate.chat.service.ChatRedisPublisher;
 import com.project.blinddate.chat.service.ChatRoomCacheService;
@@ -16,6 +14,7 @@ import org.springframework.stereotype.Controller;
 
 import java.time.Instant;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -24,7 +23,6 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class ChatWebSocketController {
 
-    private final ChatService chatService;
     private final ChatRedisPublisher chatRedisPublisher;
     private final ChatKafkaProducer chatKafkaProducer;
     private final ChatRoomCacheService chatRoomCacheService;
@@ -61,10 +59,24 @@ public class ChatWebSocketController {
                 .unreadCount(unreadCount)
                 .build();
 
-        // 2. Redis에 메세지 발행 (빠른 응답)
+        // 2. Redis에 메세지 발행 - 채팅방 내 실시간 메시지 (빠른 응답)
         chatRedisPublisher.publish(chatMessageResponse);
 
-        // 3. Kafka에 저장 이벤트 발행 (비동기 저장)
+        // 3. 채팅방 목록 업데이트 이벤트 발행 (참여자들의 채팅방 목록 갱신용)
+        String messagePreview = type == MessageType.IMAGE ? "이미지" : request.getContent();
+        ChatRoomUpdateEvent updateEvent = ChatRoomUpdateEvent.builder()
+                .updateType(ChatRoomUpdateEvent.UpdateType.UPDATED)
+                .roomId(roomId)
+                .lastMessagePreview(messagePreview)
+                .lastMessageAt(now)
+                .chatRoom(ChatRoomResponse.builder()
+                        // 채팅방 참여자 조회
+                        .participantUserIds(chatRoomCacheService.getParticipantUserIds(roomId))
+                        .build())
+                .build();
+        chatRedisPublisher.publishChatRoomUpdate(updateEvent);
+
+        // 4. Kafka에 저장 이벤트 발행 (비동기 저장)
         ChatMessageEvent event = ChatMessageEvent.builder()
                 .id(messageId)
                 .roomId(roomId)

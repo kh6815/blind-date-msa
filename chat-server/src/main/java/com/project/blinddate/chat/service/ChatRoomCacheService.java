@@ -14,6 +14,7 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
 import java.time.Duration;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -53,6 +54,16 @@ public class ChatRoomCacheService {
     }
 
     /**
+     * 채팅방 참여자 ID 목록 조회 (캐시 우선)
+     * @param roomId 채팅방 ID
+     * @return 참여자 ID 목록
+     */
+    public List<Long> getParticipantUserIds(String roomId) {
+        ChatRoomMetadata metadata = getChatRoomMetadata(roomId);
+        return metadata != null ? metadata.getParticipantUserIds() : Collections.emptyList();
+    }
+
+    /**
      * 채팅방 메타데이터 조회 (캐시 우선, 없으면 DB에서 조회 후 캐싱)
      * @param roomId 채팅방 ID
      * @return 채팅방 메타데이터
@@ -80,7 +91,7 @@ public class ChatRoomCacheService {
         // 3. 메타데이터 생성
         List<Long> participantUserIds = room.getParticipantUserIds() != null
                 ? room.getParticipantUserIds()
-                : java.util.Collections.emptyList();
+                : Collections.emptyList();
 
         ChatRoomMetadata metadata = new ChatRoomMetadata(
                 roomId,

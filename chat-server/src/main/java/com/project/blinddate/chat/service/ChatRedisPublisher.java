@@ -4,12 +4,15 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.project.blinddate.chat.dto.ChatMessageReadEvent;
 import com.project.blinddate.chat.dto.ChatMessageResponse;
+import com.project.blinddate.chat.dto.ChatRoomUpdateEvent;
 import com.project.blinddate.chat.dto.ChatUnreadBadgeEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.listener.ChannelTopic;
 import org.springframework.stereotype.Service;
+
+import java.util.List;
 
 @Slf4j
 @Service
@@ -20,6 +23,7 @@ public class ChatRedisPublisher {
     private final ChannelTopic channelTopic;
     private final ChannelTopic readEventTopic;
     private final ChannelTopic unreadBadgeTopic;
+    private final ChannelTopic chatRoomUpdateTopic;
     private final ObjectMapper objectMapper;
 
     public void publish(ChatMessageResponse message) {
@@ -66,6 +70,52 @@ public class ChatRedisPublisher {
         } catch (JsonProcessingException e) {
             log.error("Failed to serialize unread badge event for user: {}", targetUserId, e);
             throw new IllegalStateException("뱃지 업데이트 이벤트를 직렬화할 수 없습니다.", e);
+        }
+    }
+
+    /**
+     * 읽지 않은 메시지 뱃지 업데이트 이벤트를 여러 사용자에게 배치로 발행합니다.
+     * forEach 대신 단일 이벤트로 발행하여 Redis 부하를 최소화합니다. (O(N) → O(1))
+     * Redis Pub/Sub을 통해 모든 서버 인스턴스에 전달되고, 해당 사용자들이 연결된 서버에서 WebSocket으로 전달합니다.
+     *
+     * @param targetUserIds 뱃지 업데이트를 받을 사용자 ID 목록
+     */
+    public void publishUnreadBadgeUpdateBatch(List<Long> targetUserIds) {
+        if (targetUserIds == null || targetUserIds.isEmpty()) {
+            return;
+        }
+
+        try {
+            ChatUnreadBadgeEvent event = ChatUnreadBadgeEvent.builder()
+                    .targetUserIds(targetUserIds)
+                    .build();
+            String jsonMessage = objectMapper.writeValueAsString(event);
+            redisTemplate.convertAndSend(unreadBadgeTopic.getTopic(), jsonMessage);
+            log.debug("Published batch unread badge event to Redis topic {} for {} users",
+                    unreadBadgeTopic.getTopic(), targetUserIds.size());
+        } catch (JsonProcessingException e) {
+            log.error("Failed to serialize batch unread badge event for users: {}", targetUserIds, e);
+            throw new IllegalStateException("뱃지 업데이트 이벤트를 직렬화할 수 없습니다.", e);
+        }
+    }
+
+    /**
+     * 채팅방 리스트 업데이트 이벤트를 Redis Pub/Sub을 통해 모든 서버 인스턴스에 발행합니다.
+     * 채팅방 단위로 단 1회만 발행하여 부하를 최소화합니다. (O(N) → O(1))
+     * 각 서버 인스턴스는 자신에게 연결된 클라이언트들에게 WebSocket으로 전달합니다.
+     *
+     * @param event 채팅방 업데이트 이벤트 (생성/수정/삭제)
+     */
+    public void publishChatRoomUpdate(ChatRoomUpdateEvent event) {
+        try {
+            String jsonMessage = objectMapper.writeValueAsString(event);
+            redisTemplate.convertAndSend(chatRoomUpdateTopic.getTopic(), jsonMessage);
+            log.debug("Published chatroom update event to Redis topic {}: {} (roomId: {})",
+                    chatRoomUpdateTopic.getTopic(), event.getUpdateType(),
+                    event.getRoomId());
+        } catch (JsonProcessingException e) {
+            log.error("Failed to serialize chatroom update event: {}", event, e);
+            throw new IllegalStateException("채팅방 업데이트 이벤트를 직렬화할 수 없습니다.", e);
         }
     }
 }

@@ -120,10 +120,13 @@ public class ChatService {
                     .lastMessageAt(null)
                     .build();
             room = chatRoomRepository.save(room);
+
+            // 새 채팅방 생성 시 캐시 무효화 (참여자 정보 최신화)
+            chatRoomCacheService.invalidateCache(room.getId());
         }
 
         // UI 표시용 필드 채우기 (상대방 정보 등 - Kafka 기반)
-        List<Long> participantUserIds = room.getParticipantUserIds() != null ? room.getParticipantUserIds() : java.util.Collections.emptyList();
+        List<Long> participantUserIds = room.getParticipantUserIds() != null ? room.getParticipantUserIds() : Collections.emptyList();
         // myId, targetUserId 추출 (2명만 있다고 가정)
         Long myId = !participantUserIds.isEmpty() ? participantUserIds.get(0) : null;
         Long targetUserId = participantUserIds.size() > 1 ? participantUserIds.get(1) : null;

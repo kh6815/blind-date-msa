@@ -1,10 +1,11 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useChatRoom, useMarkMessagesAsRead } from '@/features/chat/hooks/useChatRooms.ts';
 import { useChatRoomMessages } from '@/features/chat/hooks/useChatRoomMessages.ts';
+import { useChatScroll } from '@/features/chat/hooks/useChatScroll.ts';
 import type { ChatRoom } from '@/types/chat';
-import {formatDate, formatTime, getDateKey} from "@/features/chat/util/DataFormatter.ts";
+import { formatDate, formatTime, getDateKey } from '@/features/chat/util/DataFormatter.ts';
 
 function ChatRoomPage() {
   const { roomId } = useParams<{ roomId: string }>();
@@ -13,13 +14,14 @@ function ChatRoomPage() {
   const user = useAuthStore((state) => state.user);
 
   const [messageInput, setMessageInput] = useState('');
-  const [isFirstLoad, setIsFirstLoad] = useState(true);
 
   const roomInfo = location.state?.room as ChatRoom | null;
-  const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // 채팅방 정보 조회
   const { data: fetchedRoomInfo } = useChatRoom(roomId || '');
+
+  // 메시지 읽음 처리
+  const markAsReadMutation = useMarkMessagesAsRead();
 
   // 현재 채팅방 정보 (location.state 우선, 없으면 API로 조회한 데이터 사용)
   const currentRoomInfo = roomInfo || fetchedRoomInfo;
@@ -27,36 +29,30 @@ function ChatRoomPage() {
   const targetUserImageUrl = currentRoomInfo?.target_user_image_url;
   const isTargetUserOnline = currentRoomInfo?.is_target_user_online || false;
 
-  // 메시지 읽음 처리
-  const markAsReadMutation = useMarkMessagesAsRead();
-
   // 메시지 통합 관리 (서버 메시지 + WebSocket 실시간 메시지 + 무한 스크롤)
   const {
     messages: allMessages,
     isLoading,
     isConnected,
     sendMessage: sendChatMessage,
-    messagesAreaRef,
+    loadMoreMessages,
+    hasNextPage,
   } = useChatRoomMessages(roomId || '', 50);
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
-
-  // 첫 로드 시 스크롤을 맨 아래로
-  useEffect(() => {
-    if (isFirstLoad && allMessages.length > 0) {
-      scrollToBottom();
-      setIsFirstLoad(false);
-    }
-  }, [allMessages.length, isFirstLoad]);
+  // 스크롤 관리
+  const { scrollContainerRef } = useChatScroll({
+    messages: allMessages,
+    isLoadingMore: isLoading,
+    hasMore: hasNextPage,
+    onLoadMore: loadMoreMessages,
+  });
 
   // 채팅방 진입 시 메시지 읽음 처리
   useEffect(() => {
     if (roomId) {
       markAsReadMutation.mutate(roomId);
     }
-  }, [roomId, markAsReadMutation]);
+  }, []);
 
   // 메시지 전송 핸들러
   const handleSendMessage = (e: React.FormEvent) => {
@@ -65,7 +61,6 @@ function ChatRoomPage() {
 
     sendChatMessage(messageInput);
     setMessageInput('');
-    scrollToBottom();
   };
 
   // 날짜별로 그룹화된 메시지 렌더링
@@ -153,14 +148,13 @@ function ChatRoomPage() {
       </header>
 
       {/* Messages */}
-      <div ref={messagesAreaRef} className="flex-1 overflow-y-auto p-4 bg-[#f8f9fa]">
+      <div ref={scrollContainerRef} className="flex-1 overflow-y-auto p-4 bg-[#f8f9fa]">
         {isLoading && (
           <div className="text-center py-2">
             <i className="fas fa-spinner fa-spin text-accent-color"></i>
           </div>
         )}
         {renderMessages()}
-        <div ref={messagesEndRef} />
       </div>
 
       {/* Input */}

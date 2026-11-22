@@ -1,8 +1,7 @@
 // 채팅방 정보 (백엔드 ChatRoomResponse)
 export interface ChatRoom {
   id: string;
-  participant_user_ids: number[];
-  created_at: string;
+  participant_user_ids?: number[];
   last_message_at?: string;
   target_user_image_url?: string;
   target_user_nickname?: string;

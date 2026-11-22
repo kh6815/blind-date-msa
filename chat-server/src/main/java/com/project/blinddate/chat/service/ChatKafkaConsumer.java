@@ -28,13 +28,11 @@ public class ChatKafkaConsumer {
         List<Long> receivers = chatService.getRoomParticipantsExcept(event.getRoomId(), event.getSenderUserId());
         log.info("📤 [Badge SSE] Room {} - sender: {}, receivers: {}", event.getRoomId(), event.getSenderUserId(), receivers);
 
-        // 3. 받는 사람들에게 뱃지 업데이트 이벤트 발행
-        // Redis Pub/Sub을 통해 모든 서버 인스턴스에 브로드캐스트
+        // 3. 받는 사람들에게 뱃지 업데이트 이벤트 배치 발행 (O(N) → O(1))
+        // Redis Pub/Sub을 통해 모든 서버 인스턴스에 단 1회 브로드캐스트
         // 각 서버는 자신에게 SSE 연결된 사용자에게만 이벤트 전송
-        receivers.forEach(receiverId -> {
-            chatRedisPublisher.publishUnreadBadgeUpdate(receiverId);
-            log.debug("✅ [Badge SSE] Published badge update to Redis for userId: {}", receiverId);
-        });
+        chatRedisPublisher.publishUnreadBadgeUpdateBatch(receivers);
+        log.debug("✅ [Badge SSE] Published batch badge update to Redis for {} users", receivers.size());
     }
 
     @KafkaListener(topics = "chat-message-read", containerFactory = "chatMessageReadKafkaListenerContainerFactory")

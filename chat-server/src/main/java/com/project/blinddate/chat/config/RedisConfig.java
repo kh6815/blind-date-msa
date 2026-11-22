@@ -29,6 +29,12 @@ public class RedisConfig {
         return new ChannelTopic("unread-badge");
     }
 
+    // 채팅방 업데이트용 Topic (채팅방 생성/수정/삭제)
+    @Bean
+    public ChannelTopic chatRoomUpdateTopic() {
+        return new ChannelTopic("chatroom-update");
+    }
+
     // 일반 채팅 메시지 리스너
     @Bean
     public MessageListenerAdapter listenerAdapter(ChatRedisSubscriber subscriber) {
@@ -47,21 +53,30 @@ public class RedisConfig {
         return new MessageListenerAdapter(subscriber, "onUnreadBadge");
     }
 
+    // 채팅방 업데이트 리스너
+    @Bean
+    public MessageListenerAdapter chatRoomUpdateListenerAdapter(ChatRedisSubscriber subscriber) {
+        return new MessageListenerAdapter(subscriber, "onChatRoomUpdate");
+    }
+
     @Bean
     public RedisMessageListenerContainer redisMessageListenerContainer(
             RedisConnectionFactory connectionFactory,
             MessageListenerAdapter listenerAdapter,
             MessageListenerAdapter readEventListenerAdapter,
             MessageListenerAdapter unreadBadgeListenerAdapter,
+            MessageListenerAdapter chatRoomUpdateListenerAdapter,
             ChannelTopic channelTopic,
             ChannelTopic readEventTopic,
-            ChannelTopic unreadBadgeTopic
+            ChannelTopic unreadBadgeTopic,
+            ChannelTopic chatRoomUpdateTopic
     ) {
         RedisMessageListenerContainer container = new RedisMessageListenerContainer();
         container.setConnectionFactory(connectionFactory);
         container.addMessageListener(listenerAdapter, channelTopic);
         container.addMessageListener(readEventListenerAdapter, readEventTopic);
         container.addMessageListener(unreadBadgeListenerAdapter, unreadBadgeTopic);
+        container.addMessageListener(chatRoomUpdateListenerAdapter, chatRoomUpdateTopic);
         return container;
     }
 }

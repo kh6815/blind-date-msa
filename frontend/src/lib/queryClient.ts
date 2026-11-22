@@ -12,12 +12,13 @@ const handleError = (error: unknown) => {
   return '알 수 없는 오류가 발생했습니다.';
 };
 
+// 쿼리 전역 설정
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       retry: 1, // 실패 시 1번만 재시도
       refetchOnWindowFocus: false, // 윈도우 포커스 시 자동 refetch 비활성화
-      staleTime: 1000 * 60 * 5, // 5분간 캐시 유지
+      // staleTime: 1000 * 60 * 5, // 5분간 캐시 유지
     },
     mutations: {
       onError: (error) => {

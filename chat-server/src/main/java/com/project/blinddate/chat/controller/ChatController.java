@@ -4,6 +4,7 @@ import com.project.blinddate.chat.dto.*;
 import com.project.blinddate.chat.service.ChatKafkaProducer;
 import com.project.blinddate.chat.service.ChatRedisPublisher;
 import com.project.blinddate.chat.service.ChatService;
+import com.project.blinddate.chat.service.UserInfoCacheService;
 import com.project.blinddate.common.ApiPathConst;
 import com.project.blinddate.common.dto.ResponseDto;
 import io.swagger.v3.oas.annotations.Operation;
@@ -29,6 +30,7 @@ import java.util.List;
 public class ChatController {
 
     private final ChatService chatService;
+    private final UserInfoCacheService userInfoCacheService;
     private final ChatRedisPublisher chatRedisPublisher;
     private final ChatKafkaProducer chatKafkaProducer;
 
@@ -67,6 +69,22 @@ public class ChatController {
                         .participantUserIds(allParticipants)
                         .build()
         );
+
+        // 채팅방 리스트 Pub
+        ChatUserInfoResponse currentUserInfo = userInfoCacheService.getUserInfo(currentUserId);
+
+        ChatRoomUpdateEvent updateEvent = ChatRoomUpdateEvent.builder()
+                .updateType(ChatRoomUpdateEvent.UpdateType.CREATED)
+                .roomId(response.getId())
+                .chatRoom(ChatRoomResponse.builder()
+                        .participantUserIds(response.getParticipantUserIds())
+                        .targetUserNickname(currentUserInfo.getNickname())
+                        .targetUserImageUrl(currentUserInfo.getProfileImageUrl())
+                        .build())
+                .build();
+
+        chatRedisPublisher.publishChatRoomUpdate(updateEvent);
+
         return ResponseEntity.ok(ResponseDto.ok(response));
     }
 
