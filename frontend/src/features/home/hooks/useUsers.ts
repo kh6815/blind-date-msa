@@ -23,6 +23,8 @@ export const useUsers = (filters: FilterParams) => {
       return lastPage.currentPage + 1;
     },
     initialPageParam: 0,
+    gcTime: 0, // 캐시 시간 0으로 설정 (즉시 가비지 컬렉션)
+    staleTime: 0, // 데이터를 항상 stale로 간주
   });
 };
 

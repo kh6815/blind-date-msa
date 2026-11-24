@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/store/useAuthStore';
+import Loading from '@/shared/components/Loading';
 
 function LogoutPage() {
   const navigate = useNavigate();
@@ -14,11 +15,7 @@ function LogoutPage() {
     navigate('/login', { replace: true });
   }, [navigate, logout]);
 
-  return (
-    <div className="flex justify-center items-center h-full">
-      <i className="fas fa-spinner fa-spin text-2xl text-accent-color"></i>
-    </div>
-  );
+  return <Loading fullScreen />;
 }
 
 export default LogoutPage;

@@ -1,12 +1,17 @@
 import { useEffect, useState, useRef } from 'react';
-import { useNavigate, useOutletContext } from 'react-router-dom';
+import { useNavigate, useOutletContext, useSearchParams } from 'react-router-dom';
 import { useUsers, useUpdateLocation } from '@/features/home/hooks/useUsers';
+import FilterModal from '@/features/home/components/FilterModal';
+import Loading from '@/shared/components/Loading';
 import type { FilterParams } from '@/types';
 
 function HomePage() {
   const [showFilterModal, setShowFilterModal] = useState(false);
   const [filters, setFilters] = useState<FilterParams>({});
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [isLoading, setIsLoading] = useState(false);
   const sentinelRef = useRef<HTMLDivElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
   const { setOnFilterClick } = useOutletContext<{ setOnFilterClick: (fn: () => void) => void }>();
   const updateLocationMutation = useUpdateLocation();
@@ -22,13 +27,29 @@ function HomePage() {
   // 모든 페이지의 사용자를 하나의 배열로 변환
   const users = data?.pages.flatMap((page) => page.data) || [];
 
-  // Register filter click handler
+  // 초기 설정 및 복원 로직을 하나의 useEffect로 통합
   useEffect(() => {
+    // 1. Filter click handler 등록
     setOnFilterClick(() => () => setShowFilterModal(true));
-  }, [setOnFilterClick]);
 
-  // Update geolocation on mount
-  useEffect(() => {
+    // 2. 필터 복원 (쿼리 파라미터 기반, 초기 로드 시)
+    const minAgeParam = searchParams.get('minAge');
+    const maxAgeParam = searchParams.get('maxAge');
+    const genderParam = searchParams.get('gender');
+    const mbtiParam = searchParams.get('mbti');
+    const locationParam = searchParams.get('location');
+
+    if (minAgeParam || maxAgeParam || genderParam || mbtiParam || locationParam) {
+      setFilters({
+          minAge: minAgeParam ? parseInt(minAgeParam, 10) : undefined,
+          maxAge: maxAgeParam ? parseInt(maxAgeParam, 10) : undefined,
+          gender: genderParam || undefined,
+          mbti: mbtiParam || undefined,
+          location: locationParam || undefined,
+      });
+    }
+
+    // 3. Geolocation 업데이트 (초기 로드 시에만)
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
@@ -38,8 +59,38 @@ function HomePage() {
         (error) => console.warn('Geolocation error:', error)
       );
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // 페이지 및 스크롤 위치 복원
+  useEffect(() => {
+    const scrollParam = searchParams.get('scroll');
+    const pageParam = searchParams.get('page');
+
+    if (scrollParam && pageParam) {
+        setIsLoading(true); // 로딩 시작
+
+      const targetScroll = parseInt(scrollParam, 10);
+      const targetPage = parseInt(pageParam, 10);
+      const loadedPages = data?.pages.length || 0;
+
+      if (loadedPages <= targetPage && !isFetchingNextPage) {
+        fetchNextPage();
+      } else if (loadedPages > targetPage && scrollContainerRef.current) {
+        requestAnimationFrame(() => {
+          scrollContainerRef.current!.scrollTop = targetScroll;
+          setIsLoading(false);
+        });
+
+        // 스크롤 복원 완료 후 쿼리 파라미터 제거
+        const newParams = new URLSearchParams(searchParams);
+        newParams.delete('scroll');
+        newParams.delete('page');
+        setSearchParams(newParams);
+      }
+    } else {
+      setIsLoading(false);
+    }
+  }, [searchParams, data]);
 
   // Intersection Observer로 무한 스크롤
   useEffect(() => {
@@ -68,17 +119,34 @@ function HomePage() {
   }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
   const handleCardClick = (userId: number) => {
-    navigate(`/users/${userId}`);
+    // scrollContainerRef에서 스크롤 위치 가져오기
+    const currentScroll = scrollContainerRef.current?.scrollTop || 0;
+    const currentPage = (data?.pages.length || 1) - 1;
+
+    const params = new URLSearchParams({
+      returnScroll: currentScroll.toString(),
+      returnPage: currentPage.toString(),
+    });
+
+    // 필터 정보 추가
+    if (filters.minAge !== undefined) params.append('minAge', filters.minAge.toString());
+    if (filters.maxAge !== undefined) params.append('maxAge', filters.maxAge.toString());
+    if (filters.gender) params.append('gender', filters.gender);
+    if (filters.mbti) params.append('mbti', filters.mbti);
+    if (filters.location) params.append('location', filters.location);
+
+    navigate(`/users/${userId}?${params.toString()}`);
   };
 
-  const handleFilterApply = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    setShowFilterModal(false);
+  const handleFilterApply = (newFilters: FilterParams) => {
+    setFilters(newFilters);
   };
 
   return (
     <>
-      <div className="pb-20">
+      <div ref={scrollContainerRef} className="h-full overflow-y-auto pb-20">
+        {isLoading && <Loading />}
+
         <div className="grid grid-cols-2 gap-4 p-5">
           {users.map((user) => (
             <div
@@ -132,85 +200,17 @@ function HomePage() {
           ))}
         </div>
 
-        {isFetchingNextPage && (
-          <div className="text-center p-5">
-            <i className="fas fa-spinner fa-spin text-2xl text-accent-color"></i>
-          </div>
-        )}
+        {isFetchingNextPage && <Loading />}
 
         {hasNextPage && <div ref={sentinelRef} className="h-5"></div>}
       </div>
 
-      {/* Filter Modal */}
-      {showFilterModal && (
-        <div
-          className="fixed top-0 left-0 w-full h-full bg-[rgba(0,0,0,0.8)] z-[1000] flex justify-center items-end"
-          onClick={(e) => e.target === e.currentTarget && setShowFilterModal(false)}
-        >
-          <div className="bg-card-bg w-full max-w-[480px] rounded-t-[20px] p-5 animate-slideUp">
-            <h2 className="text-text-primary mb-5 text-xl font-bold">필터</h2>
-            <form onSubmit={handleFilterApply}>
-              <div className="mb-5">
-                <label className="block mb-2 text-text-secondary text-sm">나이</label>
-                <div className="flex gap-2.5">
-                  <input
-                    type="number"
-                    placeholder="최소"
-                    value={filters.minAge || ''}
-                    onChange={(e) => setFilters({ ...filters, minAge: e.target.value ? Number(e.target.value) : undefined })}
-                    className="flex-1 bg-gray-200 border-none p-2.5 rounded-lg text-text-primary"
-                  />
-                  <input
-                    type="number"
-                    placeholder="최대"
-                    value={filters.maxAge || ''}
-                    onChange={(e) => setFilters({ ...filters, maxAge: e.target.value ? Number(e.target.value) : undefined })}
-                    className="flex-1 bg-gray-200 border-none p-2.5 rounded-lg text-text-primary"
-                  />
-                </div>
-              </div>
-              <div className="mb-5">
-                <label className="block mb-2 text-text-secondary text-sm">성별</label>
-                <select
-                  value={filters.gender || ''}
-                  onChange={(e) => setFilters({ ...filters, gender: e.target.value || undefined })}
-                  className="w-full bg-gray-200 border-none p-2.5 rounded-lg text-text-primary"
-                >
-                  <option value="">전체</option>
-                  <option value="MALE">남성</option>
-                  <option value="FEMALE">여성</option>
-                </select>
-              </div>
-              <div className="mb-5">
-                <label className="block mb-2 text-text-secondary text-sm">MBTI</label>
-                <input
-                  type="text"
-                  placeholder="예: INTJ"
-                  value={filters.mbti || ''}
-                  onChange={(e) => setFilters({ ...filters, mbti: e.target.value || undefined })}
-                  className="w-full bg-gray-200 border-none p-2.5 rounded-lg text-text-primary"
-                />
-              </div>
-              <div className="mb-5">
-                <label className="block mb-2 text-text-secondary text-sm">지역</label>
-                <input
-                  type="text"
-                  placeholder="예: 서울"
-                  value={filters.location || ''}
-                  onChange={(e) => setFilters({ ...filters, location: e.target.value || undefined })}
-                  className="w-full bg-gray-200 border-none p-2.5 rounded-lg text-text-primary"
-                />
-              </div>
-              <button
-                type="submit"
-                className="w-full bg-accent-color text-white p-4 border-none rounded-lg font-bold text-base cursor-pointer hover:bg-accent-hover"
-              >
-                필터 적용하기
-              </button>
-            </form>
-          </div>
-        </div>
-      )}
+      <FilterModal
+        isOpen={showFilterModal}
+        initialFilters={filters}
+        onClose={() => setShowFilterModal(false)}
+        onApply={handleFilterApply}
+      />
     </>
   );
 }

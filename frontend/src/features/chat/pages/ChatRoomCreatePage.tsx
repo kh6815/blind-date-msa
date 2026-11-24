@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useCreateChatRoom, useChatRoom } from '@/features/chat/hooks/useChatRooms.ts';
+import Loading from '@/shared/components/Loading';
 import type { ChatRoomCreateRequest } from '@/types/chat';
 
 function ChatRoomCreatePage() {
@@ -43,11 +44,7 @@ function ChatRoomCreatePage() {
     }
   }, [createdRoomInfo, createdRoomId, navigate]);
 
-  return (
-    <div className="flex justify-center items-center h-full">
-      <i className="fas fa-spinner fa-spin text-2xl text-accent-color"></i>
-    </div>
-  );
+  return <Loading fullScreen />;
 }
 
 export default ChatRoomCreatePage;

@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useLikedUsers, useMarkLikesAsRead } from '@/features/likes/hooks/useLikes';
+import Loading from '@/shared/components/Loading';
 
 function LikeListPage() {
   const navigate = useNavigate();
@@ -127,11 +128,7 @@ function LikeListPage() {
       </div>
 
       {/* 로딩 인디케이터 */}
-      {isLoading && (
-        <div className="text-center p-5">
-          <i className="fas fa-spinner fa-spin text-2xl text-accent-color"></i>
-        </div>
-      )}
+      {isLoading && <Loading />}
 
       {/* Sentinel - hasNextPage가 true일 때만 렌더링 */}
       {hasNextPage && <div ref={sentinelRef} className="h-5"></div>}

@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import { useCurrentUser } from '@/features/profile/hooks/useCurrentUser';
 import Layout from '@/shared/components/Layout';
+import Loading from '@/shared/components/Loading';
 import LoginPage from '@/features/auth/pages/LoginPage';
 import SignupPage from '@/features/auth/pages/SignupPage';
 import LogoutPage from '@/features/auth/pages/LogoutPage';
@@ -17,11 +18,7 @@ function PrivateRouteWrapper() {
   const { data: user, isLoading, isError } = useCurrentUser();
 
   if (isLoading) {
-    return (
-      <div className="flex justify-center items-center h-screen">
-        <i className="fas fa-spinner fa-spin text-2xl text-accent-color"></i>
-      </div>
-    );
+    return <Loading fullScreen />;
   }
 
   if (isError || !user) {

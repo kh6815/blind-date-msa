@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { useChatRooms } from '@/features/chat/hooks/useChatRooms.ts';
 import { useChatListSocket } from '@/features/chat/hooks/useChatListSocket.ts';
 import { formatRelativeTime } from '@/features/chat/util/DataFormatter.ts';
+import Loading from '@/shared/components/Loading';
 import type { ChatRoom } from '@/types/chat';
 
 function ChatListPage() {
@@ -69,11 +70,7 @@ function ChatListPage() {
   }, []);
 
   if (isLoading && page === 0) {
-    return (
-      <div className="flex items-center justify-center p-10">
-        <i className="fas fa-spinner fa-spin text-2xl text-accent-color"></i>
-      </div>
-    );
+    return <Loading />;
   }
 
   return (

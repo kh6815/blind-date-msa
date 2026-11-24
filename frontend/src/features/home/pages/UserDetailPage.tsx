@@ -1,12 +1,14 @@
 import { useState } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { useUser, useRecordView } from '@/features/home/hooks/useUsers';
 import { useCheckLike, useAddLike, useRemoveLike } from '@/features/home/hooks/useLike';
 import ImageModal from '@/shared/components/ImageModal';
+import Loading from '@/shared/components/Loading';
 
 function UserDetailPage() {
   const { userId } = useParams<{ userId: string }>();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [showImageModal, setShowImageModal] = useState(false);
 
@@ -46,12 +48,38 @@ function UserDetailPage() {
     setCurrentImageIndex((prev) => (prev + 1) % allImages.length);
   };
 
+  const handleBackClick = () => {
+    const returnScroll = searchParams.get('returnScroll');
+    const returnPage = searchParams.get('returnPage');
+    const minAge = searchParams.get('minAge');
+    const maxAge = searchParams.get('maxAge');
+    const gender = searchParams.get('gender');
+    const mbti = searchParams.get('mbti');
+    const location = searchParams.get('location');
+
+    if (returnScroll && returnPage) {
+      // 홈으로 돌아가면서 스크롤 위치 및 필터 정보 전달
+      const params = new URLSearchParams({
+        scroll: returnScroll,
+        page: returnPage,
+      });
+
+      // 필터 정보 추가
+      if (minAge) params.append('minAge', minAge);
+      if (maxAge) params.append('maxAge', maxAge);
+      if (gender) params.append('gender', gender);
+      if (mbti) params.append('mbti', mbti);
+      if (location) params.append('location', location);
+
+      navigate(`/?${params.toString()}`);
+    } else {
+      // 쿼리 파라미터가 없으면 그냥 뒤로가기
+      navigate(-1);
+    }
+  };
+
   if (!user) {
-    return (
-      <div className="flex justify-center items-center h-full">
-        <i className="fas fa-spinner fa-spin text-2xl text-accent-color"></i>
-      </div>
-    );
+    return <Loading />;
   }
 
   const interestList = user.interests?.split(',').map((i) => i.trim()).filter(Boolean) || [];
@@ -60,7 +88,7 @@ function UserDetailPage() {
     <div className="pb-20">
       {/* Header */}
       <header className="px-5 py-3 flex items-center bg-bg-color z-10">
-        <button onClick={() => navigate(-1)} className="text-text-primary text-2xl">
+        <button onClick={handleBackClick} className="text-text-primary text-2xl">
           <i className="fas fa-arrow-left"></i>
         </button>
       </header>

@@ -5,6 +5,7 @@ import { useChatRoom, useMarkMessagesAsRead, useUploadImage } from '@/features/c
 import { useChatRoomMessages } from '@/features/chat/hooks/useChatRoomMessages.ts';
 import { useChatScroll } from '@/features/chat/hooks/useChatScroll.ts';
 import ImageModal from '@/shared/components/ImageModal';
+import Loading from '@/shared/components/Loading';
 import type { ChatRoom } from '@/types/chat';
 import { formatDate, formatTime, getDateKey } from '@/features/chat/util/DataFormatter.ts';
 
@@ -222,11 +223,7 @@ function ChatRoomPage() {
 
       {/* Messages */}
       <div ref={scrollContainerRef} className="flex-1 overflow-y-auto p-4 bg-[#f8f9fa]">
-        {isLoading && (
-          <div className="text-center py-2">
-            <i className="fas fa-spinner fa-spin text-accent-color"></i>
-          </div>
-        )}
+        {isLoading && <Loading size="sm" />}
         {renderMessages()}
       </div>
 
