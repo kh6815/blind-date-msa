@@ -81,11 +81,8 @@ function HomePage() {
           setIsLoading(false);
         });
 
-        // 스크롤 복원 완료 후 쿼리 파라미터 제거
-        const newParams = new URLSearchParams(searchParams);
-        newParams.delete('scroll');
-        newParams.delete('page');
-        setSearchParams(newParams);
+        // 쿼리 파라미터 초기화
+        setSearchParams({});
       }
     } else {
       setIsLoading(false);
