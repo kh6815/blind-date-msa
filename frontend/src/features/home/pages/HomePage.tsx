@@ -32,24 +32,7 @@ function HomePage() {
     // 1. Filter click handler 등록
     setOnFilterClick(() => () => setShowFilterModal(true));
 
-    // 2. 필터 복원 (쿼리 파라미터 기반, 초기 로드 시)
-    const minAgeParam = searchParams.get('minAge');
-    const maxAgeParam = searchParams.get('maxAge');
-    const genderParam = searchParams.get('gender');
-    const mbtiParam = searchParams.get('mbti');
-    const locationParam = searchParams.get('location');
-
-    if (minAgeParam || maxAgeParam || genderParam || mbtiParam || locationParam) {
-      setFilters({
-          minAge: minAgeParam ? parseInt(minAgeParam, 10) : undefined,
-          maxAge: maxAgeParam ? parseInt(maxAgeParam, 10) : undefined,
-          gender: genderParam || undefined,
-          mbti: mbtiParam || undefined,
-          location: locationParam || undefined,
-      });
-    }
-
-    // 3. Geolocation 업데이트 (초기 로드 시에만)
+    // 2. Geolocation 업데이트 (초기 로드 시에만)
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
@@ -65,6 +48,23 @@ function HomePage() {
   useEffect(() => {
     const scrollParam = searchParams.get('scroll');
     const pageParam = searchParams.get('page');
+
+    // 필터 복원 (쿼리 파라미터 기반, 초기 로드 시)
+    const minAgeParam = searchParams.get('minAge');
+    const maxAgeParam = searchParams.get('maxAge');
+    const genderParam = searchParams.get('gender');
+    const mbtiParam = searchParams.get('mbti');
+    const locationParam = searchParams.get('location');
+
+    if (minAgeParam || maxAgeParam || genderParam || mbtiParam || locationParam) {
+      setFilters({
+          minAge: minAgeParam ? parseInt(minAgeParam, 10) : undefined,
+          maxAge: maxAgeParam ? parseInt(maxAgeParam, 10) : undefined,
+          gender: genderParam || undefined,
+          mbti: mbtiParam || undefined,
+          location: locationParam || undefined,
+      });
+    }
 
     if (scrollParam && pageParam) {
         setIsLoading(true); // 로딩 시작

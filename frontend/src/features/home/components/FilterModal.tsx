@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import type { FilterParams } from '@/types';
 
 interface FilterModalProps {
@@ -10,6 +10,13 @@ interface FilterModalProps {
 
 function FilterModal({ isOpen, initialFilters, onClose, onApply }: FilterModalProps) {
   const [tempFilters, setTempFilters] = useState<FilterParams>(initialFilters);
+
+  // 모달이 열릴 때마다 현재 필터 값으로 동기화
+  useEffect(() => {
+    if (isOpen) {
+      setTempFilters(initialFilters);
+    }
+  }, [isOpen, initialFilters]);
 
   if (!isOpen) return null;
 
